@@ -1,0 +1,201 @@
+@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Sora:wght@400;500;600;700;800&display=swap");
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Manrope", ui-sans-serif, system-ui, sans-serif;
+  --font-heading: "Sora", ui-sans-serif, system-ui, sans-serif;
+
+  --color-bg-deep: #F5F1EA;
+  --color-bg-elevated: #EFE7DD;
+  --color-bg-card: #FFF9F3;
+
+  --color-accent: #D4714E;
+  --color-accent-ink: #8E472E;
+  --color-accent-contrast: #261814;
+  --color-accent-soft: rgba(212, 113, 78, 0.08);
+
+  --color-chatgpt: #10A37F;
+  --color-chatgpt-contrast: #072A22;
+  --color-claude: #D4714E;
+
+  --color-text-primary: #1A1A1A;
+  --color-text-secondary: #6B6B6B;
+  --color-text-muted: #726D76;
+
+  --color-border-default: #E8E5DF;
+  --color-border-strong: #D5D0C8;
+
+  --color-purple: #6A50D6;
+  --color-purple-soft: rgba(124, 92, 252, 0.08);
+
+  --color-positive: #10A37F;
+  --color-positive-ink: #0B6953;
+  --color-positive-soft: rgba(16, 163, 127, 0.10);
+  --color-negative: #A8463A;
+  --color-negative-soft: rgba(168, 70, 58, 0.12);
+  --color-warning: #8A5A12;
+
+  --animate-shimmer: shimmer 2s linear infinite;
+  --animate-blob-drift: blob-drift 25s ease-in-out infinite;
+  --animate-blob-breathe: blob-breathe 8s ease-in-out infinite;
+  --animate-fade-in: fade-in 250ms ease-out both;
+  --animate-confetti-fall: confetti-fall 2s ease-out forwards;
+  --animate-breathing-border: breathing-border 3s ease-in-out infinite;
+  --animate-pulsing-orb: pulsing-orb 3s ease-in-out infinite;
+  --animate-typing-dot: typing-dot 1.4s ease-in-out infinite;
+}
+
+body {
+  @apply bg-bg-deep text-text-primary font-sans antialiased;
+  min-height: 100dvh;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* Focus state — warm accent glow */
+:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(212, 113, 78, 0.3);
+}
+
+/* --- Keyframes --- */
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+@keyframes blob-drift {
+
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+
+  25% {
+    transform: translate(10px, -15px);
+  }
+
+  50% {
+    transform: translate(-8px, 12px);
+  }
+
+  75% {
+    transform: translate(12px, 8px);
+  }
+}
+
+@keyframes blob-breathe {
+
+  0%,
+  100% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes confetti-fall {
+  0% {
+    transform: translateY(-10vh) translateX(0) rotate(0deg);
+    opacity: 1;
+  }
+
+  100% {
+    transform: translateY(100vh) translateX(var(--confetti-drift, 0px)) rotate(720deg);
+    opacity: 0;
+  }
+}
+
+@keyframes breathing-border {
+
+  0%,
+  100% {
+    border-color: var(--color-border-strong);
+    opacity: 0.6;
+  }
+
+  50% {
+    border-color: var(--color-accent);
+    opacity: 1;
+  }
+}
+
+@keyframes pulsing-orb {
+
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.72;
+  }
+
+  50% {
+    transform: scale(1.08);
+    opacity: 0.92;
+  }
+}
+
+@keyframes typing-dot {
+
+  0%,
+  60%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+
+  30% {
+    transform: translateY(-4px);
+    opacity: 1;
+  }
+}
+
+@keyframes shimmer-badge {
+  0% {
+    background-position: -200% 0;
+  }
+
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* --- Dot grid background pattern --- */
+.dot-grid {
+  background-image: radial-gradient(circle, rgba(107, 107, 107, 0.14) 1px, transparent 1px);
+  background-size: 24px 24px;
+  -webkit-mask-image: radial-gradient(120% 80% at 50% 20%, black 60%, transparent 100%);
+  mask-image: radial-gradient(120% 80% at 50% 20%, black 60%, transparent 100%);
+}
+
+/* --- Reduced motion --- */
+
+@media (prefers-reduced-motion: reduce) {
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

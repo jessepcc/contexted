@@ -1,0 +1,13 @@
+{
+  "name": "@contexted/db",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "echo 'db package build: no-op'",
+    "typecheck": "echo 'db package typecheck: no-op'",
+    "lint": "echo 'db package lint: no-op'",
+    "test": "echo 'db package test: no-op'",
+    "test:coverage": "echo 'db package coverage: no-op'"
+  }
+}

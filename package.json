@@ -1,0 +1,23 @@
+{
+  "name": "contexted",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run -ws build",
+    "test": "npm run -ws test",
+    "test:coverage": "npm run -ws test:coverage",
+    "typecheck": "npm run -ws typecheck",
+    "lint": "npm run -ws lint",
+    "safety:scan": "bash scripts/dcg-scan.sh",
+    "db:migrate:test": "bash scripts/apply-migrations.sh .env.test",
+    "db:migrate:prod": "bash scripts/apply-migrations.sh .env.production"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

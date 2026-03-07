@@ -1,0 +1,31 @@
+{
+  "name": "@contexted/api-worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "dev": "npm run build --prefix ../../packages/shared && tsc -p tsconfig.json && node --env-file=../../.env dist/apps/api-worker/src/dev-server.js",
+    "dev:test": "npm run build --prefix ../../packages/shared && tsc -p tsconfig.json && node --env-file=../../.env.test dist/apps/api-worker/src/dev-server.js",
+    "dev:prod": "npm run build --prefix ../../packages/shared && tsc -p tsconfig.json && node --env-file=../../.env.production dist/apps/api-worker/src/dev-server.js",
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "echo 'lint: api-worker (no-op)'",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage"
+  },
+  "dependencies": {
+    "@contexted/shared": "0.1.0",
+    "@hono/node-server": "^1.13.8",
+    "@supabase/supabase-js": "^2.49.1",
+    "hono": "^4.7.2",
+    "postgres": "^3.4.5",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@vitest/coverage-v8": "^3.0.8",
+    "typescript": "^5.7.3",
+    "vitest": "^3.0.8"
+  }
+}

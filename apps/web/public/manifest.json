@@ -1,0 +1,16 @@
+{
+  "name": "Contexted",
+  "short_name": "Contexted",
+  "description": "Words over faces — find who is in the same chapter as you.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1c1a24",
+  "theme_color": "#7c5cfc",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
