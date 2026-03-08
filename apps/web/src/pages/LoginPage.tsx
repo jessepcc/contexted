@@ -5,6 +5,7 @@ import { PageShell } from '../components/PageShell.js';
 import { Button } from '../components/Button.js';
 import { apiRequest, HttpError } from '../api.js';
 import { useReducedMotion, useSpring } from '../hooks/useDelight.js';
+import { buildMagicLinkRedirect, loadPendingInviteCode } from '../referrals.js';
 
 export function LoginPage(): ReactElement {
   const [email, setEmail] = useState('');
@@ -13,6 +14,7 @@ export function LoginPage(): ReactElement {
   const [submitting, setSubmitting] = useState(false);
   const reduced = useReducedMotion();
   const spring = useSpring(reduced);
+  const hasPendingInvite = loadPendingInviteCode() !== null;
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -24,7 +26,7 @@ export function LoginPage(): ReactElement {
         method: 'POST',
         body: JSON.stringify({
           email,
-          redirect_to: window.location.origin + '/auth/verify'
+          redirect_to: buildMagicLinkRedirect(window.location.origin)
         })
       });
       setSent(true);
@@ -43,7 +45,7 @@ export function LoginPage(): ReactElement {
     return (
       <PageShell blobs="landing">
         <motion.div
-          className="flex flex-col items-center gap-3 px-6 pt-24 text-center"
+          className="mx-auto flex w-full max-w-xl flex-col items-center gap-3 px-4 pt-14 text-center sm:px-6 sm:pt-20 lg:pt-24"
           {...spring.enter}
         >
           <h1 className="font-heading text-3xl font-bold text-text-primary">
@@ -63,7 +65,7 @@ export function LoginPage(): ReactElement {
   return (
     <PageShell blobs="landing">
       <motion.div
-        className="flex flex-col items-center pt-24 px-6 gap-8"
+        className="mx-auto flex w-full max-w-xl flex-col items-center gap-6 px-4 pt-14 sm:px-6 sm:pt-20 lg:gap-8 lg:pt-24"
         {...spring.enter}
       >
         <div className="text-center">
@@ -73,6 +75,9 @@ export function LoginPage(): ReactElement {
           <p className="mt-2 text-text-secondary text-sm">
             We use a magic link so your memory stays attached to you, not to another password.
           </p>
+          {hasPendingInvite ? (
+            <p className="mt-2 text-sm text-text-muted">If you came through an invite, we&rsquo;ll keep it attached.</p>
+          ) : null}
         </div>
 
         <form

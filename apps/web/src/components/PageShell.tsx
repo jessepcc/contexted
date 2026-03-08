@@ -15,7 +15,7 @@ export function PageShell({
       <div className="dot-grid pointer-events-none absolute inset-0 z-[1]" />
       <main
         id="main-content"
-        className="relative z-10 mx-auto flex w-full max-w-lg md:max-w-4xl lg:max-w-6xl flex-col animate-fade-in"
+        className="relative z-10 mx-auto flex w-full max-w-[92rem] min-w-0 flex-col animate-fade-in"
       >
         {children}
       </main>

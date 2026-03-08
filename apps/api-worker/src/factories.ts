@@ -64,7 +64,7 @@ function createAiDependenciesFromEnv(env: Record<string, string | undefined>): {
   };
 }
 
-export function createInMemoryDependencies(): {
+export function createInMemoryDependencies(env: Record<string, string | undefined> = {}): {
   deps: AppDependencies;
   auth: InMemoryAuthService;
   storage: InMemoryStorageService;
@@ -77,7 +77,7 @@ export function createInMemoryDependencies(): {
   const queue = new InMemoryQueueService();
 
   const deps: AppDependencies = {
-    config: loadConfig({}),
+    config: loadConfig(env),
     repository,
     authService: auth,
     storageService: storage,
@@ -98,7 +98,7 @@ export function createInMemoryDependencies(): {
 
 export function createRuntimeDependencies(env: Record<string, string | undefined>): AppDependencies {
   if (env.APP_MODE === 'memory') {
-    return createInMemoryDependencies().deps;
+    return createInMemoryDependencies(env).deps;
   }
 
   const databaseUrl = env.DATABASE_URL;

@@ -4,12 +4,13 @@ import { useCallback, useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import { useAppContext } from '../AppContext.js';
 import { apiRequest } from '../api.js';
-import { Button } from '../components/Button.js';
 import { PageShell } from '../components/PageShell.js';
+import { ReferralInviteCard } from '../components/ReferralInviteCard.js';
 import { useReducedMotion } from '../hooks/useDelight.js';
 import { usePolling } from '../polling.js';
-import { shareOrCopy } from '../share.js';
-import type { BootstrapResponse } from '../types.js';
+import { buildReferralShareContent, consumeReferralFlash, fetchReferralOverview } from '../referrals.js';
+import { copyToClipboard, shareOrCopy } from '../share.js';
+import type { BootstrapResponse, ReferralOverviewResponse } from '../types.js';
 import { getWaitingRoomContent } from '../waitingRoom.js';
 
 const STATUS_TONE_CLASS = {
@@ -25,6 +26,10 @@ export function WaitingPage(): ReactElement {
   const reduced = useReducedMotion();
   const [shareStatus, setShareStatus] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [referral, setReferral] = useState<ReferralOverviewResponse | null>(null);
+  const [referralError, setReferralError] = useState<string | null>(null);
+  const [loadingReferral, setLoadingReferral] = useState(true);
+  const [referralFlash, setReferralFlash] = useState<string | null>(null);
 
   const waitingContent = getWaitingRoomContent(appState?.drop ?? null);
 
@@ -67,18 +72,34 @@ export function WaitingPage(): ReactElement {
     }
   }, [navigate, setAppState]);
 
-  async function handleShare(): Promise<void> {
+  async function loadReferralOverview(): Promise<void> {
     try {
-      const result = await shareOrCopy({
-        title: 'Contexted',
-        text: 'I’m trying Contexted — an alpha experiment that starts from the memory AI keeps about us instead of swipes.',
-        url: window.location.origin
-      });
+      setLoadingReferral(true);
+      const nextReferral = await fetchReferralOverview();
+      setReferral(nextReferral);
+      setReferralError(null);
+    } catch (error) {
+      setReferral(null);
+      setReferralError('Private invites are warming up. Your place in line stays intact.');
+    } finally {
+      setLoadingReferral(false);
+    }
+  }
+
+  async function handleShare(): Promise<void> {
+    const shareContent = referral ? buildReferralShareContent(referral) : null;
+    if (!shareContent) {
+      setShareStatus('Private invite link unavailable right now.');
+      return;
+    }
+
+    try {
+      const result = await shareOrCopy(shareContent);
       setShareStatus(
         result === 'copied'
-          ? 'Invite link copied.'
+          ? 'Private invite copied.'
           : result === 'shared'
-            ? 'Invite sheet opened.'
+            ? 'Private share sheet opened.'
             : null
       );
     } catch (error) {
@@ -86,10 +107,27 @@ export function WaitingPage(): ReactElement {
     }
   }
 
+  async function handleCopy(): Promise<void> {
+    const shareContent = referral ? buildReferralShareContent(referral) : null;
+    if (!shareContent) {
+      setShareStatus('Private invite link unavailable right now.');
+      return;
+    }
+
+    try {
+      await copyToClipboard(shareContent);
+      setShareStatus('Private invite copied.');
+    } catch (error) {
+      setShareStatus('Copy is unavailable on this device.');
+    }
+  }
+
   useEffect(() => {
+    setReferralFlash(consumeReferralFlash());
     void syncBootstrap().catch((reason) => {
       setLoadError(reason instanceof Error ? reason.message : 'Live drop status unavailable right now.');
     });
+    void loadReferralOverview();
   }, [syncBootstrap]);
 
   usePolling({
@@ -152,17 +190,6 @@ export function WaitingPage(): ReactElement {
                   </li>
                 ))}
               </ul>
-              <div className="mt-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                <p className="text-sm text-text-secondary">Want someone else to try it with you?</p>
-                <Button type="button" variant="secondary" onClick={() => void handleShare()}>
-                  Share Contexted
-                </Button>
-              </div>
-              {shareStatus ? (
-                <p className="mt-3 text-sm text-positive-ink" role="status">
-                  {shareStatus}
-                </p>
-              ) : null}
               {loadError ? (
                 <p className="mt-3 text-sm text-text-muted" role="status">
                   Live refresh hit a snag. We&rsquo;re showing the last honest state we have.
@@ -172,9 +199,21 @@ export function WaitingPage(): ReactElement {
           </div>
 
           <div className="flex flex-col gap-4 md:sticky md:top-8">
+            <motion.div {...fadeUp(0.16)}>
+              <ReferralInviteCard
+                referral={referral}
+                shareStatus={shareStatus}
+                loading={loadingReferral}
+                error={referralError}
+                flashMessage={referralFlash}
+                onCopy={handleCopy}
+                onShare={handleShare}
+              />
+            </motion.div>
+
             <motion.section
               className="flex flex-col gap-3 rounded-[28px] border border-border-default bg-bg-card p-5 lg:p-6"
-              {...fadeUp(0.2)}
+              {...fadeUp(0.24)}
             >
               <span className="text-[12px] font-bold tracking-[0.18em] text-text-muted">HOW MEMORY GETS READ</span>
               <p className="text-sm leading-relaxed text-text-primary">
@@ -192,7 +231,7 @@ export function WaitingPage(): ReactElement {
 
             <motion.section
               className="rounded-[28px] border border-chatgpt bg-bg-card p-5 lg:p-6"
-              {...fadeUp(0.3)}
+              {...fadeUp(0.32)}
             >
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="flex max-w-md flex-col gap-1">

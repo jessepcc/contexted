@@ -11,6 +11,7 @@ export type UserRecord = {
   email: string;
   status: UserStatus;
   createdAt: string;
+  queueEnteredAt?: string;
   lastActiveAt?: string;
   deletedAt?: string;
 };
@@ -26,6 +27,7 @@ export type PreferencesRecord = {
 export type ProfileRecord = {
   userId: string;
   source: SourceKind;
+  matchText: string;
   sanitizedSummary: string;
   vibeCheckCard?: string;
   embedding: number[];
@@ -146,6 +148,45 @@ export type SharedVibeCheckRecord = {
   shareToken: string;
   platform?: string;
   clicked: boolean;
+  createdAt: string;
+};
+
+export type InviteCodeRecord = {
+  userId: string;
+  code: string;
+  createdAt: string;
+  disabledAt?: string;
+};
+
+export type ReferralStatus = 'clicked' | 'claimed' | 'qualified' | 'rewarded' | 'ineligible';
+
+export type ReferralRecord = {
+  id: string;
+  inviterUserId: string;
+  inviteeUserId?: string;
+  inviteCode: string;
+  status: ReferralStatus;
+  ineligibleReason?: string;
+  claimedAt?: string;
+  qualifiedAt?: string;
+  rewardedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type PriorityCreditStatus = 'available' | 'consumed' | 'expired';
+export type PriorityCreditSourceType = 'referral_inviter' | 'referral_invitee';
+
+export type PriorityCreditRecord = {
+  id: string;
+  userId: string;
+  sourceType: PriorityCreditSourceType;
+  referralId: string;
+  status: PriorityCreditStatus;
+  availableAt: string;
+  consumedAt?: string;
+  consumedInDropId?: string;
+  expiresAt?: string;
   createdAt: string;
 };
 

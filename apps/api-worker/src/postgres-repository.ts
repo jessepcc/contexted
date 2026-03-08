@@ -1,13 +1,17 @@
+import type { UserCandidates } from '@contexted/shared';
 import postgres, { type Sql } from 'postgres';
 import type { Repository } from './dependencies.js';
 import type {
   DropRecord,
   IngestJobRecord,
+  InviteCodeRecord,
   MatchRecord,
   MessageRecord,
   PreferencesRecord,
+  PriorityCreditRecord,
   ProfileIngestionRecord,
   ProfileRecord,
+  ReferralRecord,
   RevealTokenRecord,
   SharedVibeCheckRecord,
   UserRecord
@@ -40,6 +44,7 @@ function mapUser(row: any): UserRecord {
     email: row.email,
     status: row.status,
     createdAt: row.created_at,
+    queueEnteredAt: row.queue_entered_at ?? undefined,
     lastActiveAt: row.last_active_at ?? undefined,
     deletedAt: row.deleted_at ?? undefined
   };
@@ -49,6 +54,7 @@ function mapProfile(row: any): ProfileRecord {
   return {
     userId: row.user_id,
     source: row.source,
+    matchText: row.match_text,
     sanitizedSummary: row.sanitized_summary,
     vibeCheckCard: row.vibe_check_card ?? undefined,
     embedding: parseVector(row.embedding),
@@ -156,6 +162,46 @@ function mapRevealToken(row: any): RevealTokenRecord {
   };
 }
 
+function mapInviteCode(row: any): InviteCodeRecord {
+  return {
+    userId: row.user_id,
+    code: row.code,
+    createdAt: row.created_at,
+    disabledAt: row.disabled_at ?? undefined
+  };
+}
+
+function mapReferral(row: any): ReferralRecord {
+  return {
+    id: row.id,
+    inviterUserId: row.inviter_user_id,
+    inviteeUserId: row.invitee_user_id ?? undefined,
+    inviteCode: row.invite_code,
+    status: row.status,
+    ineligibleReason: row.ineligible_reason ?? undefined,
+    claimedAt: row.claimed_at ?? undefined,
+    qualifiedAt: row.qualified_at ?? undefined,
+    rewardedAt: row.rewarded_at ?? undefined,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at
+  };
+}
+
+function mapPriorityCredit(row: any): PriorityCreditRecord {
+  return {
+    id: row.id,
+    userId: row.user_id,
+    sourceType: row.source_type,
+    referralId: row.referral_id,
+    status: row.status,
+    availableAt: row.available_at,
+    consumedAt: row.consumed_at ?? undefined,
+    consumedInDropId: row.consumed_in_drop_id ?? undefined,
+    expiresAt: row.expires_at ?? undefined,
+    createdAt: row.created_at
+  };
+}
+
 export class PostgresRepository implements Repository {
   private readonly sql: Sql;
 
@@ -173,11 +219,12 @@ export class PostgresRepository implements Repository {
 
   async upsertUser(user: UserRecord): Promise<UserRecord> {
     const [row] = await this.sql`
-      insert into users (id, email, status, created_at, last_active_at, deleted_at)
-      values (${user.id}, ${user.email}, ${user.status}, ${user.createdAt}, ${user.lastActiveAt ?? null}, ${user.deletedAt ?? null})
+      insert into users (id, email, status, created_at, queue_entered_at, last_active_at, deleted_at)
+      values (${user.id}, ${user.email}, ${user.status}, ${user.createdAt}, ${user.queueEnteredAt ?? null}, ${user.lastActiveAt ?? null}, ${user.deletedAt ?? null})
       on conflict (id) do update
       set email = excluded.email,
           status = excluded.status,
+          queue_entered_at = excluded.queue_entered_at,
           last_active_at = excluded.last_active_at,
           deleted_at = excluded.deleted_at
       returning *
@@ -213,11 +260,23 @@ export class PostgresRepository implements Repository {
     `;
   }
 
+  async hasAnyMatchForUser(userId: string): Promise<boolean> {
+    const [row] = await this.sql`
+      select 1
+      from matches
+      where user_a_id = ${userId} or user_b_id = ${userId}
+      limit 1
+    `;
+
+    return Boolean(row);
+  }
+
   async upsertProfile(profile: ProfileRecord): Promise<void> {
     await this.sql`
       insert into profiles (
         user_id,
         source,
+        match_text,
         sanitized_summary,
         vibe_check_card,
         embedding,
@@ -230,6 +289,7 @@ export class PostgresRepository implements Repository {
       values (
         ${profile.userId},
         ${profile.source},
+        ${profile.matchText},
         ${profile.sanitizedSummary},
         ${profile.vibeCheckCard ?? null},
         ${this.sql.unsafe(`'[${profile.embedding.join(',')}]'`)},
@@ -241,6 +301,7 @@ export class PostgresRepository implements Repository {
       )
       on conflict (user_id) do update
       set source = excluded.source,
+          match_text = excluded.match_text,
           sanitized_summary = excluded.sanitized_summary,
           vibe_check_card = excluded.vibe_check_card,
           embedding = excluded.embedding,
@@ -254,6 +315,108 @@ export class PostgresRepository implements Repository {
   async getProfileByUserId(userId: string): Promise<ProfileRecord | null> {
     const [row] = await this.sql`select * from profiles where user_id = ${userId} limit 1`;
     return row ? mapProfile(row) : null;
+  }
+
+  async getProfilesByUserIds(userIds: string[]): Promise<ProfileRecord[]> {
+    if (userIds.length === 0) {
+      return [];
+    }
+
+    const rows = await this.sql`select * from profiles where user_id in ${this.sql(userIds)}`;
+    return rows.map(mapProfile);
+  }
+
+  async buildCandidateMap(input: { topK: number }): Promise<UserCandidates[]> {
+    const topK = Math.max(1, input.topK);
+    const eligible = await this.sql<
+      Array<{ user_id: string; queue_entered_at: string | null; available_priority_credits: number }>
+    >`
+      select u.id as user_id
+           , u.queue_entered_at
+           , coalesce(credits.available_priority_credits, 0) as available_priority_credits
+      from users u
+      join profiles p on p.user_id = u.id
+      join preferences pref on pref.user_id = u.id
+      left join lateral (
+        select count(*)::int as available_priority_credits
+        from priority_credits pc
+        where pc.user_id = u.id and pc.status = 'available'
+      ) credits on true
+      where u.status = 'waiting' and u.deleted_at is null and p.match_text <> ''
+      order by
+        case when coalesce(credits.available_priority_credits, 0) > 0 then 1 else 0 end desc,
+        u.queue_entered_at asc nulls last,
+        u.id asc
+    `;
+
+    if (eligible.length === 0) {
+      return [];
+    }
+
+    const rows = await this.sql<Array<{ user_id: string; target_user_id: string; score: number }>>`
+      with waiting as (
+        select
+          u.id as user_id,
+          p.embedding,
+          p.embedding_model,
+          pref.gender_identity,
+          pref.attracted_to
+        from users u
+        join profiles p on p.user_id = u.id
+        join preferences pref on pref.user_id = u.id
+        where u.status = 'waiting' and u.deleted_at is null and p.match_text <> ''
+      )
+      select
+        source.user_id,
+        candidate.user_id as target_user_id,
+        1 - candidate.distance as score
+      from waiting source
+      join lateral (
+        select
+          other.user_id,
+          source.embedding <=> other.embedding as distance
+        from waiting other
+        where other.user_id <> source.user_id
+          and other.embedding_model = source.embedding_model
+          and other.gender_identity = any(source.attracted_to)
+          and source.gender_identity = any(other.attracted_to)
+          and not exists (
+            select 1
+            from matches m
+            where least(m.user_a_id, m.user_b_id) = least(source.user_id, other.user_id)
+              and greatest(m.user_a_id, m.user_b_id) = greatest(source.user_id, other.user_id)
+          )
+        order by source.embedding <=> other.embedding
+        limit ${topK}
+      ) candidate on true
+      order by source.user_id, score desc, target_user_id
+    `;
+
+    const grouped = new Map<string, UserCandidates>(
+      eligible.map(({ user_id, queue_entered_at, available_priority_credits }) => [
+        user_id,
+        {
+          userId: user_id,
+          priorityTier: available_priority_credits > 0 ? 1 : 0,
+          queueEnteredAt: queue_entered_at ?? undefined,
+          candidates: []
+        }
+      ])
+    );
+
+    for (const row of rows) {
+      const entry = grouped.get(row.user_id);
+      if (!entry) {
+        continue;
+      }
+
+      entry.candidates.push({
+        targetUserId: row.target_user_id,
+        score: Number(row.score)
+      });
+    }
+
+    return [...grouped.values()];
   }
 
   async createProfileIngestion(ingestion: ProfileIngestionRecord): Promise<void> {
@@ -749,6 +912,206 @@ export class PostgresRepository implements Repository {
     `;
 
     return result.count > 0;
+  }
+
+  async createInviteCode(inviteCode: InviteCodeRecord): Promise<InviteCodeRecord> {
+    const [row] = await this.sql`
+      insert into invite_codes (user_id, code, created_at, disabled_at)
+      values (${inviteCode.userId}, ${inviteCode.code}, ${inviteCode.createdAt}, ${inviteCode.disabledAt ?? null})
+      on conflict (user_id) do update
+      set code = excluded.code,
+          created_at = excluded.created_at,
+          disabled_at = excluded.disabled_at
+      returning *
+    `;
+
+    return mapInviteCode(row);
+  }
+
+  async getInviteCodeByUserId(userId: string): Promise<InviteCodeRecord | null> {
+    const [row] = await this.sql`select * from invite_codes where user_id = ${userId} limit 1`;
+    return row ? mapInviteCode(row) : null;
+  }
+
+  async getInviteCodeByCode(code: string): Promise<InviteCodeRecord | null> {
+    const [row] = await this.sql`
+      select *
+      from invite_codes
+      where code = ${code} and disabled_at is null
+      limit 1
+    `;
+    return row ? mapInviteCode(row) : null;
+  }
+
+  async createReferral(referral: ReferralRecord): Promise<ReferralRecord> {
+    const [row] = await this.sql`
+      insert into referrals (
+        id,
+        inviter_user_id,
+        invitee_user_id,
+        invite_code,
+        status,
+        ineligible_reason,
+        claimed_at,
+        qualified_at,
+        rewarded_at,
+        created_at,
+        updated_at
+      )
+      values (
+        ${referral.id},
+        ${referral.inviterUserId},
+        ${referral.inviteeUserId ?? null},
+        ${referral.inviteCode},
+        ${referral.status},
+        ${referral.ineligibleReason ?? null},
+        ${referral.claimedAt ?? null},
+        ${referral.qualifiedAt ?? null},
+        ${referral.rewardedAt ?? null},
+        ${referral.createdAt},
+        ${referral.updatedAt}
+      )
+      returning *
+    `;
+
+    return mapReferral(row);
+  }
+
+  async getReferralByInviteeUserId(userId: string): Promise<ReferralRecord | null> {
+    const [row] = await this.sql`
+      select *
+      from referrals
+      where invitee_user_id = ${userId}
+      order by created_at desc
+      limit 1
+    `;
+    return row ? mapReferral(row) : null;
+  }
+
+  async updateReferral(referralId: string, update: Partial<ReferralRecord>): Promise<ReferralRecord | null> {
+    const [row] = await this.sql`
+      update referrals
+      set inviter_user_id = coalesce(${update.inviterUserId ?? null}, inviter_user_id),
+          invitee_user_id = coalesce(${update.inviteeUserId ?? null}, invitee_user_id),
+          invite_code = coalesce(${update.inviteCode ?? null}, invite_code),
+          status = coalesce(${update.status ?? null}, status),
+          ineligible_reason = coalesce(${update.ineligibleReason ?? null}, ineligible_reason),
+          claimed_at = coalesce(${update.claimedAt ?? null}, claimed_at),
+          qualified_at = coalesce(${update.qualifiedAt ?? null}, qualified_at),
+          rewarded_at = coalesce(${update.rewardedAt ?? null}, rewarded_at),
+          updated_at = ${update.updatedAt ?? new Date().toISOString()}
+      where id = ${referralId}
+      returning *
+    `;
+    return row ? mapReferral(row) : null;
+  }
+
+  async countQualifiedReferralsByInviterUserId(userId: string): Promise<number> {
+    const [row] = await this.sql`
+      select count(*)::int as total
+      from referrals
+      where inviter_user_id = ${userId}
+        and status in ('qualified', 'rewarded')
+    `;
+
+    return Number(row?.total ?? 0);
+  }
+
+  async createPriorityCredit(credit: PriorityCreditRecord): Promise<void> {
+    await this.sql`
+      insert into priority_credits (
+        id,
+        user_id,
+        source_type,
+        referral_id,
+        status,
+        available_at,
+        consumed_at,
+        consumed_in_drop_id,
+        expires_at,
+        created_at
+      )
+      values (
+        ${credit.id},
+        ${credit.userId},
+        ${credit.sourceType},
+        ${credit.referralId},
+        ${credit.status},
+        ${credit.availableAt},
+        ${credit.consumedAt ?? null},
+        ${credit.consumedInDropId ?? null},
+        ${credit.expiresAt ?? null},
+        ${credit.createdAt}
+      )
+      on conflict (referral_id, user_id) do nothing
+    `;
+  }
+
+  async countAvailablePriorityCredits(userId: string): Promise<number> {
+    const [row] = await this.sql`
+      select count(*)::int as total
+      from priority_credits
+      where user_id = ${userId}
+        and status = 'available'
+    `;
+
+    return Number(row?.total ?? 0);
+  }
+
+  async consumePriorityCreditsForDrop(dropId: string, consumedAt: string): Promise<string[]> {
+    const matchedUsers = await this.sql<Array<{ user_id: string }>>`
+      select distinct matched.user_id
+      from (
+        select user_a_id as user_id from matches where drop_id = ${dropId}
+        union all
+        select user_b_id as user_id from matches where drop_id = ${dropId}
+      ) matched
+    `;
+
+    const consumedUsers: string[] = [];
+
+    for (const { user_id } of matchedUsers) {
+      const [alreadyConsumed] = await this.sql`
+        select 1
+        from priority_credits
+        where user_id = ${user_id}
+          and consumed_in_drop_id = ${dropId}
+        limit 1
+      `;
+
+      if (alreadyConsumed) {
+        continue;
+      }
+
+      try {
+        const [row] = await this.sql`
+          with next_credit as (
+            select id
+            from priority_credits
+            where user_id = ${user_id}
+              and status = 'available'
+            order by available_at asc, created_at asc, id asc
+            limit 1
+          )
+          update priority_credits
+          set status = 'consumed',
+              consumed_at = ${consumedAt},
+              consumed_in_drop_id = ${dropId}
+          where id in (select id from next_credit)
+          returning *
+        `;
+
+        if (row) {
+          consumedUsers.push(user_id);
+        }
+      } catch (error) {
+        if (!(error instanceof Error) || !error.message.includes('priority_credits_user_drop_unique_idx')) {
+          throw error;
+        }
+      }
+    }
+
+    return consumedUsers;
   }
 
   async getIdempotency(

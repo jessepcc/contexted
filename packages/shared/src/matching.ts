@@ -5,6 +5,8 @@ export type Candidate = {
 
 export type UserCandidates = {
   userId: string;
+  priorityTier?: number;
+  queueEnteredAt?: string;
   candidates: Candidate[];
 };
 
@@ -30,7 +32,34 @@ export function buildDeterministicPairs(candidateMap: UserCandidates[]): MatchPa
     map.set(item.userId, sorted);
   }
 
-  const users = [...map.keys()].sort();
+  const priorityByUser = new Map(
+    candidateMap.map((item) => [
+      item.userId,
+      {
+        priorityTier: item.priorityTier ?? 0,
+        queueEnteredAt: item.queueEnteredAt ?? ''
+      }
+    ])
+  );
+
+  const users = [...map.keys()].sort((left, right) => {
+    const leftMeta = priorityByUser.get(left) ?? { priorityTier: 0, queueEnteredAt: '' };
+    const rightMeta = priorityByUser.get(right) ?? { priorityTier: 0, queueEnteredAt: '' };
+
+    if (rightMeta.priorityTier !== leftMeta.priorityTier) {
+      return rightMeta.priorityTier - leftMeta.priorityTier;
+    }
+
+    const leftQueue = leftMeta.queueEnteredAt;
+    const rightQueue = rightMeta.queueEnteredAt;
+    if (leftQueue !== rightQueue) {
+      if (!leftQueue) return 1;
+      if (!rightQueue) return -1;
+      return leftQueue.localeCompare(rightQueue);
+    }
+
+    return left.localeCompare(right);
+  });
   const used = new Set<string>();
   const pairs: MatchPair[] = [];
   const seenPairs = new Set<string>();

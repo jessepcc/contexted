@@ -5,14 +5,15 @@ import {
   intakeSummarySchema,
   magicLinkSchema,
   preferencesSchema,
+  referralClaimSchema,
   reportSchema,
   sendMessageSchema,
   uploadCompleteSchema,
-  uploadInitSchema,
-  type UserCandidates
+  uploadInitSchema
 } from '@contexted/shared';
 import { Hono } from 'hono';
 import type { Context } from 'hono';
+import { timingSafeEqual } from 'node:crypto';
 import type { AppDependencies } from './dependencies.js';
 import { InMemoryRepository } from './in-memory-repository.js';
 import type { IngestionStatus, MatchRecord } from './model.js';
@@ -23,8 +24,12 @@ import {
   type AppEnv,
   withAppErrors
 } from './http-utils.js';
-import { materializeDropPairs } from './services/drop-service.js';
+import { runDrop } from './services/drop-run-service.js';
 import { computeMessageEtag, getPollAfterMs, hashRevealToken, isMatchParticipant } from './utils.js';
+
+const MAX_REFERRAL_REWARDS = 2;
+const INVITE_CODE_LENGTH = 8;
+const INVITE_CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
 function asIngestionState(status: IngestionStatus | undefined): 'pending' | 'processing' | 'completed' | 'failed' | undefined {
   if (!status) {
@@ -64,6 +69,108 @@ function matchStateForUser(match: MatchRecord, userId: string): {
   };
 }
 
+function hasInternalAdminAccess(c: Context, deps: AppDependencies): boolean {
+  const expected = deps.config.internalAdminToken?.trim();
+  const provided = c.req.header('X-Internal-Admin-Token')?.trim();
+
+  if (!expected || !provided) {
+    return false;
+  }
+
+  const expectedBuffer = Buffer.from(expected);
+  const providedBuffer = Buffer.from(provided);
+
+  return expectedBuffer.length === providedBuffer.length && timingSafeEqual(expectedBuffer, providedBuffer);
+}
+
+function randomInviteCode(): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(INVITE_CODE_LENGTH));
+  return [...bytes]
+    .map((value) => INVITE_CODE_ALPHABET[value % INVITE_CODE_ALPHABET.length])
+    .join('');
+}
+
+async function ensureInviteCode(deps: AppDependencies, userId: string, nowIso: string): Promise<string> {
+  const existing = await deps.repository.getInviteCodeByUserId(userId);
+  if (existing && !existing.disabledAt) {
+    return existing.code;
+  }
+
+  for (let attempt = 0; attempt < 6; attempt += 1) {
+    const code = randomInviteCode();
+    try {
+      const created = await deps.repository.createInviteCode({
+        userId,
+        code,
+        createdAt: nowIso
+      });
+      return created.code;
+    } catch {
+      continue;
+    }
+  }
+
+  throw new Error('Unable to create invite code.');
+}
+
+async function maybeRewardReferral(
+  deps: AppDependencies,
+  userId: string,
+  nowIso: string,
+  wasFirstQueueEntry: boolean
+): Promise<void> {
+  const referral = await deps.repository.getReferralByInviteeUserId(userId);
+  if (!referral || referral.status !== 'claimed') {
+    return;
+  }
+
+  if (!wasFirstQueueEntry || (await deps.repository.hasAnyMatchForUser(userId))) {
+    await deps.repository.updateReferral(referral.id, {
+      status: 'ineligible',
+      ineligibleReason: 'existing_user',
+      updatedAt: nowIso
+    });
+    return;
+  }
+
+  const landedReferrals = await deps.repository.countQualifiedReferralsByInviterUserId(referral.inviterUserId);
+  if (landedReferrals >= MAX_REFERRAL_REWARDS) {
+    await deps.repository.updateReferral(referral.id, {
+      status: 'ineligible',
+      ineligibleReason: 'reward_cap_reached',
+      updatedAt: nowIso
+    });
+    return;
+  }
+
+  await deps.repository.createPriorityCredit({
+    id: crypto.randomUUID(),
+    userId: referral.inviterUserId,
+    sourceType: 'referral_inviter',
+    referralId: referral.id,
+    status: 'available',
+    availableAt: nowIso,
+    createdAt: nowIso
+  });
+
+  await deps.repository.createPriorityCredit({
+    id: crypto.randomUUID(),
+    userId,
+    sourceType: 'referral_invitee',
+    referralId: referral.id,
+    status: 'available',
+    availableAt: nowIso,
+    createdAt: nowIso
+  });
+
+  await deps.repository.updateReferral(referral.id, {
+    status: 'rewarded',
+    qualifiedAt: nowIso,
+    rewardedAt: nowIso,
+    updatedAt: nowIso
+  });
+}
+
 export function createApp(deps: AppDependencies): Hono<AppEnv> {
   const app = new Hono<AppEnv>();
   const requireAuth = createAuthMiddleware(deps);
@@ -72,6 +179,103 @@ export function createApp(deps: AppDependencies): Hono<AppEnv> {
 
   // In-memory upload sink: accepts PUT uploads so the browser XHR succeeds in dev/memory mode
   app.put('/r/upload-sink/*', (c) => c.json({ ok: true }));
+
+  app.post(
+    '/v1/referrals/claim',
+    requireAuth,
+    withAppErrors(async (c: Context<AppEnv>) => {
+      const viewer = c.get('viewer');
+      const body = await parseValidatedJson(c, referralClaimSchema, deps);
+      const nowIso = deps.clock().toISOString();
+
+      const inviteCode = await deps.repository.getInviteCodeByCode(body.invite_code);
+      if (!inviteCode) {
+        return c.json({ code: 'STATE_CONFLICT', field: 'invite_code', message: 'Invite code not found.' }, 404);
+      }
+
+      if (inviteCode.userId === viewer.id) {
+        return c.json({ code: 'STATE_CONFLICT', field: 'invite_code', message: 'You can’t claim your own invite.' }, 422);
+      }
+
+      const existing = await deps.repository.getReferralByInviteeUserId(viewer.id);
+      if (existing) {
+        return c.json({
+          claimed: existing.inviteCode === inviteCode.code,
+          eligible_for_reward: existing.status === 'claimed' || existing.status === 'qualified' || existing.status === 'rewarded',
+          reason: existing.inviteCode === inviteCode.code ? existing.ineligibleReason ?? null : 'already_claimed'
+        });
+      }
+
+      const viewerUser = await deps.repository.getUserById(viewer.id);
+      if (!viewerUser) {
+        return c.json({ code: 'STATE_CONFLICT', field: 'user', message: 'User not found.' }, 404);
+      }
+      const eligibleForReward = Boolean(viewerUser) && !viewerUser.queueEnteredAt && !(await deps.repository.hasAnyMatchForUser(viewer.id));
+
+      await deps.repository.createReferral({
+        id: crypto.randomUUID(),
+        inviterUserId: inviteCode.userId,
+        inviteeUserId: viewer.id,
+        inviteCode: inviteCode.code,
+        status: eligibleForReward ? 'claimed' : 'ineligible',
+        ineligibleReason: eligibleForReward ? undefined : 'existing_user',
+        claimedAt: eligibleForReward ? nowIso : undefined,
+        createdAt: nowIso,
+        updatedAt: nowIso
+      });
+
+      return c.json({
+        claimed: true,
+        eligible_for_reward: eligibleForReward,
+        reason: eligibleForReward ? null : 'existing_user'
+      });
+    })
+  );
+
+  app.get(
+    '/v1/referrals/me',
+    requireAuth,
+    withAppErrors(async (c: Context<AppEnv>) => {
+      const viewer = c.get('viewer');
+      const nowIso = deps.clock().toISOString();
+      const inviteCode = await ensureInviteCode(deps, viewer.id, nowIso);
+      const landedReferrals = await deps.repository.countQualifiedReferralsByInviterUserId(viewer.id);
+      const availablePriorityCredits = await deps.repository.countAvailablePriorityCredits(viewer.id);
+      const origin = new URL(c.req.url).origin;
+
+      return c.json({
+        invite_url: `${origin}/?invite=${inviteCode}`,
+        invite_code: inviteCode,
+        landed_referrals: landedReferrals,
+        max_landed_referrals: MAX_REFERRAL_REWARDS,
+        available_priority_credits: availablePriorityCredits,
+        remaining_referral_rewards: Math.max(0, MAX_REFERRAL_REWARDS - landedReferrals),
+        can_invite: landedReferrals < MAX_REFERRAL_REWARDS
+      });
+    })
+  );
+
+  app.post(
+    '/v1/referrals/:invite_code/click',
+    withAppErrors(async (c: Context) => {
+      const inviteCode = await deps.repository.getInviteCodeByCode(c.req.param('invite_code').toUpperCase());
+      if (!inviteCode) {
+        return c.json({ code: 'STATE_CONFLICT', field: 'invite_code', message: 'Invite code not found.' }, 404);
+      }
+
+      const nowIso = deps.clock().toISOString();
+      await deps.repository.createReferral({
+        id: crypto.randomUUID(),
+        inviterUserId: inviteCode.userId,
+        inviteCode: inviteCode.code,
+        status: 'clicked',
+        createdAt: nowIso,
+        updatedAt: nowIso
+      });
+
+      return c.json({ clicked: true });
+    })
+  );
 
   app.post(
     '/v1/auth/magic-link',
@@ -402,8 +606,14 @@ export function createApp(deps: AppDependencies): Hono<AppEnv> {
     requireAuth,
     withAppErrors(async (c: Context<AppEnv>) => {
       const viewer = c.get('viewer');
+      const nowIso = deps.clock().toISOString();
       const profile = await deps.repository.getProfileByUserId(viewer.id);
       const preferences = await deps.repository.getPreferencesByUserId(viewer.id);
+      const user = await deps.repository.getUserById(viewer.id);
+
+      if (!user) {
+        return c.json({ code: 'STATE_CONFLICT', field: 'user', message: 'User not found.' }, 404);
+      }
 
       if (!profile) {
         return c.json({ code: 'STATE_CONFLICT', field: 'profile', message: 'Profile processing is incomplete.' }, 422);
@@ -413,7 +623,13 @@ export function createApp(deps: AppDependencies): Hono<AppEnv> {
         return c.json({ code: 'STATE_CONFLICT', field: 'preferences', message: 'Preferences are required.' }, 422);
       }
 
-      await deps.repository.setUserStatus(viewer.id, 'waiting');
+      await deps.repository.upsertUser({
+        ...user,
+        status: 'waiting',
+        queueEnteredAt: user.queueEnteredAt ?? nowIso,
+        lastActiveAt: nowIso
+      });
+      await maybeRewardReferral(deps, viewer.id, nowIso, !user.queueEnteredAt);
       return c.json({ enrolled: true, status: 'waiting' });
     })
   );
@@ -715,6 +931,32 @@ export function createApp(deps: AppDependencies): Hono<AppEnv> {
   );
 
   app.post(
+    '/v1/internal/drops/run',
+    withAppErrors(async (c: Context) => {
+      if (!hasInternalAdminAccess(c, deps)) {
+        return c.json({ code: 'STATE_CONFLICT', message: 'Invalid internal admin token.' }, 403);
+      }
+
+      const result = await runDrop(deps);
+      if (result.status === 'published') {
+        await deps.repository.consumePriorityCreditsForDrop(result.dropId, deps.clock().toISOString());
+      }
+      const statusCode = result.status === 'published' ? 200 : 422;
+
+      return c.json(
+        {
+          drop_id: result.dropId,
+          pool_size: result.poolSize,
+          pairs_created: result.pairsCreated,
+          status: result.status,
+          failure_reason: result.failureReason ?? null
+        },
+        statusCode as any
+      );
+    })
+  );
+
+  app.post(
     '/v1/dev/trigger-drop',
     withAppErrors(async (c: Context) => {
       if (!(deps.repository instanceof InMemoryRepository)) {
@@ -743,10 +985,11 @@ export function createApp(deps: AppDependencies): Hono<AppEnv> {
           await repo.upsertProfile({
             userId: partnerId,
             source: 'chatgpt',
+            matchText: 'A creative thinker who loves music, philosophy, and late-night conversations about the meaning of life.',
             sanitizedSummary: 'A creative thinker who loves music, philosophy, and late-night conversations about the meaning of life.',
             vibeCheckCard: 'You chase ideas with infectious energy and question everything twice.',
             embedding: new Array(1536).fill(0.5),
-            embeddingModel: 'text-embedding-3-small',
+            embeddingModel: deps.config.embeddingModel,
             piiRiskScore: 0,
             createdAt: deps.clock().toISOString(),
             updatedAt: deps.clock().toISOString()
@@ -764,32 +1007,22 @@ export function createApp(deps: AppDependencies): Hono<AppEnv> {
         );
       }
 
-      const candidateMap: UserCandidates[] = waitingUsers.map((user) => ({
-        userId: user.id,
-        candidates: waitingUsers
-          .filter((other) => other.id !== user.id)
-          .map((other) => ({ targetUserId: other.id, score: 1.0 }))
-      }));
-
-      const dropId = crypto.randomUUID();
-      const dropNow = deps.clock().toISOString();
-      await repo.upsertDrop({
-        id: dropId,
-        scheduledAt: dropNow,
-        status: 'published',
-        mode: 'global',
-        poolSize: waitingUsers.length,
-        startedAt: dropNow,
-        finishedAt: dropNow,
-        createdAt: dropNow
-      });
-      const pairCount = await materializeDropPairs(deps, { dropId, candidateMap });
-
-      for (const user of waitingUsers) {
-        await repo.setUserStatus(user.id, 'matched');
+      const result = await runDrop(deps);
+      if (result.status === 'published') {
+        await deps.repository.consumePriorityCreditsForDrop(result.dropId, deps.clock().toISOString());
       }
+      const statusCode = result.status === 'published' ? 200 : 422;
 
-      return c.json({ drop_id: dropId, pairs_created: pairCount });
+      return c.json(
+        {
+          drop_id: result.dropId,
+          pool_size: result.poolSize,
+          pairs_created: result.pairsCreated,
+          status: result.status,
+          failure_reason: result.failureReason ?? null
+        },
+        statusCode as any
+      );
     })
   );
 

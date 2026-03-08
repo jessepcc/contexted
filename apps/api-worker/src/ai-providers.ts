@@ -27,7 +27,7 @@ function buildRedactionPrompt(source: SourceKind, sourceText: string): ChatMessa
     {
       role: 'system',
       content:
-        'You are a strict data privacy engine. Strip PII and return strict JSON with fields summary and piiRiskScore (0..100).'
+        'You are a strict data privacy and summarization engine. The input has already been browser-redacted but may still contain residual PII. Return strict JSON with fields summary and piiRiskScore (0..100).'
     },
     {
       role: 'user',

@@ -8,6 +8,7 @@ async function buildTestApp() {
   const factory = createInMemoryDependencies();
   let now = new Date('2026-03-03T12:00:00.000Z');
   factory.deps.clock = () => new Date(now);
+  factory.deps.config.internalAdminToken = 'test-admin';
 
   const user = {
     id: crypto.randomUUID(),
@@ -34,6 +35,52 @@ async function buildTestApp() {
       now = new Date(now.getTime() + minutes * 60_000);
     }
   };
+}
+
+function vectorWithPeak(index: number, peak = 1): number[] {
+  const vector = new Array(1536).fill(0);
+  vector[index] = peak;
+  return vector;
+}
+
+async function seedEligibleWaitingUser(
+  setup: Awaited<ReturnType<typeof buildTestApp>>,
+  input: {
+    userId: string;
+    email: string;
+    genderIdentity: 'M' | 'F' | 'NB';
+    attractedTo: Array<'M' | 'F' | 'NB'>;
+    embeddingIndex: number;
+    peak?: number;
+    matchText: string;
+  }
+) {
+  await setup.repository.upsertUser({
+    id: input.userId,
+    email: input.email,
+    status: 'waiting',
+    createdAt: setup.deps.clock().toISOString(),
+    lastActiveAt: setup.deps.clock().toISOString()
+  });
+  await setup.repository.upsertProfile({
+    userId: input.userId,
+    source: 'chatgpt',
+    matchText: input.matchText,
+    sanitizedSummary: input.matchText,
+    vibeCheckCard: 'vibe',
+    embedding: vectorWithPeak(input.embeddingIndex, input.peak ?? 1),
+    embeddingModel: setup.deps.config.embeddingModel,
+    piiRiskScore: 0,
+    createdAt: setup.deps.clock().toISOString(),
+    updatedAt: setup.deps.clock().toISOString()
+  });
+  await setup.repository.upsertPreferences({
+    userId: input.userId,
+    genderIdentity: input.genderIdentity,
+    attractedTo: input.attractedTo,
+    ageMin: 24,
+    ageMax: 40
+  });
 }
 
 describe('api worker', () => {
@@ -179,7 +226,19 @@ describe('api worker', () => {
     expect(ingestion?.storageBucket).toBe('summary-intake');
 
     expect(setup.queue.enqueued).toHaveLength(1);
-    expect(setup.queue.enqueued[0]?.payload.sourceText).toContain('Provider: Gemini');
+    expect(setup.queue.enqueued[0]?.payload.sourceText).toBe(
+      'Provider: Gemini\n\nI ask AI to reflect my blind spots and over-index on meaning.'
+    );
+  });
+
+  it('rejects internal drop runs without the admin token', async () => {
+    const setup = await buildTestApp();
+
+    const response = await setup.app.request('/v1/internal/drops/run', {
+      method: 'POST'
+    });
+
+    expect(response.status).toBe(403);
   });
 
   it('validates provider_label for source=both summary intake', async () => {
@@ -398,6 +457,7 @@ describe('api worker', () => {
     await setup.repository.upsertProfile({
       userId: setup.user.id,
       source: 'chatgpt',
+      matchText: 'summary',
       sanitizedSummary: 'summary',
       vibeCheckCard: 'vibe',
       embedding: new Array(1536).fill(0),
@@ -559,6 +619,11 @@ describe('api worker', () => {
 
   it('processes ingestion job end-to-end', async () => {
     const setup = await buildTestApp();
+    let embeddedInput = '';
+    setup.deps.embeddingService.embed = async (input: string) => {
+      embeddedInput = input;
+      return new Array(1536).fill(0.25);
+    };
 
     const ingestionId = crypto.randomUUID();
     await setup.repository.createProfileIngestion({
@@ -600,12 +665,545 @@ describe('api worker', () => {
 
     const profile = await setup.repository.getProfileByUserId(setup.user.id);
     expect(profile).not.toBeNull();
+    expect(profile?.matchText).toBe('Contact me at [redacted_email]. I love deep work and writing.');
     expect(profile?.sanitizedSummary).toContain('[redacted_email]');
+    expect(embeddedInput).toBe(profile?.matchText);
 
     const job = await setup.repository.getIngestJobById(jobId);
     expect(job?.state).toBe('succeeded');
 
     const ingestion = await setup.repository.getProfileIngestionById(ingestionId);
     expect(ingestion?.status).toBe('completed');
+  });
+
+  it('filters candidate maps by compatibility and historical matches', async () => {
+    const setup = await buildTestApp();
+
+    await setup.repository.upsertProfile({
+      userId: setup.user.id,
+      source: 'chatgpt',
+      matchText: 'Systems and writing.',
+      sanitizedSummary: 'Systems and writing.',
+      vibeCheckCard: 'vibe',
+      embedding: vectorWithPeak(0),
+      embeddingModel: setup.deps.config.embeddingModel,
+      piiRiskScore: 0,
+      createdAt: setup.deps.clock().toISOString(),
+      updatedAt: setup.deps.clock().toISOString()
+    });
+    await setup.repository.upsertPreferences({
+      userId: setup.user.id,
+      genderIdentity: 'M',
+      attractedTo: ['F'],
+      ageMin: 24,
+      ageMax: 31
+    });
+
+    const compatibleId = crypto.randomUUID();
+    await setup.repository.upsertUser({
+      id: compatibleId,
+      email: 'compatible@example.com',
+      status: 'waiting',
+      createdAt: setup.deps.clock().toISOString(),
+      lastActiveAt: setup.deps.clock().toISOString()
+    });
+    await setup.repository.upsertProfile({
+      userId: compatibleId,
+      source: 'claude',
+      matchText: 'Music and philosophy.',
+      sanitizedSummary: 'Music and philosophy.',
+      vibeCheckCard: 'vibe',
+      embedding: vectorWithPeak(0, 0.9),
+      embeddingModel: setup.deps.config.embeddingModel,
+      piiRiskScore: 0,
+      createdAt: setup.deps.clock().toISOString(),
+      updatedAt: setup.deps.clock().toISOString()
+    });
+    await setup.repository.upsertPreferences({
+      userId: compatibleId,
+      genderIdentity: 'F',
+      attractedTo: ['M'],
+      ageMin: 24,
+      ageMax: 31
+    });
+
+    const incompatibleId = crypto.randomUUID();
+    await setup.repository.upsertUser({
+      id: incompatibleId,
+      email: 'incompatible@example.com',
+      status: 'waiting',
+      createdAt: setup.deps.clock().toISOString(),
+      lastActiveAt: setup.deps.clock().toISOString()
+    });
+    await setup.repository.upsertProfile({
+      userId: incompatibleId,
+      source: 'claude',
+      matchText: 'Different direction.',
+      sanitizedSummary: 'Different direction.',
+      vibeCheckCard: 'vibe',
+      embedding: vectorWithPeak(1),
+      embeddingModel: setup.deps.config.embeddingModel,
+      piiRiskScore: 0,
+      createdAt: setup.deps.clock().toISOString(),
+      updatedAt: setup.deps.clock().toISOString()
+    });
+    await setup.repository.upsertPreferences({
+      userId: incompatibleId,
+      genderIdentity: 'NB',
+      attractedTo: ['NB'],
+      ageMin: 24,
+      ageMax: 31
+    });
+
+    const previousMatchId = crypto.randomUUID();
+    const previousPartnerId = crypto.randomUUID();
+    await setup.repository.upsertUser({
+      id: previousPartnerId,
+      email: 'previous@example.com',
+      status: 'waiting',
+      createdAt: setup.deps.clock().toISOString(),
+      lastActiveAt: setup.deps.clock().toISOString()
+    });
+    await setup.repository.upsertProfile({
+      userId: previousPartnerId,
+      source: 'chatgpt',
+      matchText: 'Old pair.',
+      sanitizedSummary: 'Old pair.',
+      vibeCheckCard: 'vibe',
+      embedding: vectorWithPeak(0, 0.8),
+      embeddingModel: setup.deps.config.embeddingModel,
+      piiRiskScore: 0,
+      createdAt: setup.deps.clock().toISOString(),
+      updatedAt: setup.deps.clock().toISOString()
+    });
+    await setup.repository.upsertPreferences({
+      userId: previousPartnerId,
+      genderIdentity: 'F',
+      attractedTo: ['M'],
+      ageMin: 24,
+      ageMax: 31
+    });
+    await setup.repository.upsertMatch({
+      id: previousMatchId,
+      dropId: 'drop-old',
+      userAId: setup.user.id,
+      userBId: previousPartnerId,
+      status: 'closed',
+      synergyPoints: ['One', 'Two'],
+      confessionPrompt: 'Prompt',
+      responseDeadline: new Date(setup.deps.clock().getTime() - 30 * 60_000).toISOString(),
+      expiresAt: new Date(setup.deps.clock().getTime() - 5 * 60 * 60_000).toISOString(),
+      version: 2,
+      createdAt: setup.deps.clock().toISOString()
+    });
+
+    const candidateMap = await setup.repository.buildCandidateMap({ topK: 20 });
+    const source = candidateMap.find((item) => item.userId === setup.user.id);
+
+    expect(source?.candidates.map((candidate) => candidate.targetUserId)).toEqual([compatibleId]);
+  });
+
+  it('runs internal drop creation with grounded match text', async () => {
+    const setup = await buildTestApp();
+    const pairInputs: Array<{ profileA: string; profileB: string }> = [];
+    setup.deps.llmService.generatePairContent = async (input) => {
+      pairInputs.push(input);
+      return {
+        synergyPoints: ['One', 'Two'],
+        confessionPrompt: 'Prompt'
+      };
+    };
+
+    await setup.repository.upsertProfile({
+      userId: setup.user.id,
+      source: 'chatgpt',
+      matchText: 'I care about writing, systems, and late-night conversations.',
+      sanitizedSummary: 'Writing, systems, late-night conversations.',
+      vibeCheckCard: 'vibe',
+      embedding: vectorWithPeak(0),
+      embeddingModel: setup.deps.config.embeddingModel,
+      piiRiskScore: 0,
+      createdAt: setup.deps.clock().toISOString(),
+      updatedAt: setup.deps.clock().toISOString()
+    });
+    await setup.repository.upsertPreferences({
+      userId: setup.user.id,
+      genderIdentity: 'M',
+      attractedTo: ['F'],
+      ageMin: 24,
+      ageMax: 31
+    });
+
+    const partnerId = crypto.randomUUID();
+    await setup.repository.upsertUser({
+      id: partnerId,
+      email: 'partner@example.com',
+      status: 'waiting',
+      createdAt: setup.deps.clock().toISOString(),
+      lastActiveAt: setup.deps.clock().toISOString()
+    });
+    await setup.repository.upsertProfile({
+      userId: partnerId,
+      source: 'claude',
+      matchText: 'I keep finding myself in philosophy, music, and emotional honesty.',
+      sanitizedSummary: 'Philosophy, music, honesty.',
+      vibeCheckCard: 'vibe',
+      embedding: vectorWithPeak(0, 0.95),
+      embeddingModel: setup.deps.config.embeddingModel,
+      piiRiskScore: 0,
+      createdAt: setup.deps.clock().toISOString(),
+      updatedAt: setup.deps.clock().toISOString()
+    });
+    await setup.repository.upsertPreferences({
+      userId: partnerId,
+      genderIdentity: 'F',
+      attractedTo: ['M'],
+      ageMin: 24,
+      ageMax: 31
+    });
+
+    const response = await setup.app.request('/v1/internal/drops/run', {
+      method: 'POST',
+      headers: {
+        'X-Internal-Admin-Token': 'test-admin'
+      }
+    });
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({
+      pairs_created: 1,
+      status: 'published'
+    });
+    expect(pairInputs).toHaveLength(1);
+    expect([pairInputs[0]?.profileA, pairInputs[0]?.profileB].sort()).toEqual([
+      'I care about writing, systems, and late-night conversations.',
+      'I keep finding myself in philosophy, music, and emotional honesty.'
+    ]);
+
+    const match = await setup.repository.getCurrentMatchByUserId(setup.user.id);
+    expect([match?.userAId, match?.userBId].sort()).toEqual([partnerId, setup.user.id].sort());
+
+    const drop = await setup.repository.getRelevantDrop(setup.deps.clock().toISOString());
+    expect(drop?.status).toBe('published');
+  });
+
+  it('strips redaction artifacts before generating reveal copy', async () => {
+    const setup = await buildTestApp();
+    const pairInputs: Array<{ profileA: string; profileB: string }> = [];
+    setup.deps.llmService.generatePairContent = async (input) => {
+      pairInputs.push(input);
+      return {
+        synergyPoints: ['One', 'Two'],
+        confessionPrompt: 'Prompt'
+      };
+    };
+
+    await setup.repository.upsertProfile({
+      userId: setup.user.id,
+      source: 'chatgpt',
+      matchText:
+        'Email me at [redacted_email] and call [redacted_phone]. I care about writing, systems, and slow conversations.',
+      sanitizedSummary: 'Writing, systems, and slow conversations.',
+      vibeCheckCard: 'vibe',
+      embedding: vectorWithPeak(0),
+      embeddingModel: setup.deps.config.embeddingModel,
+      piiRiskScore: 25,
+      createdAt: setup.deps.clock().toISOString(),
+      updatedAt: setup.deps.clock().toISOString()
+    });
+    await setup.repository.upsertPreferences({
+      userId: setup.user.id,
+      genderIdentity: 'M',
+      attractedTo: ['F'],
+      ageMin: 24,
+      ageMax: 31
+    });
+
+    const partnerId = crypto.randomUUID();
+    await setup.repository.upsertUser({
+      id: partnerId,
+      email: 'partner@example.com',
+      status: 'waiting',
+      createdAt: setup.deps.clock().toISOString(),
+      lastActiveAt: setup.deps.clock().toISOString()
+    });
+    await setup.repository.upsertProfile({
+      userId: partnerId,
+      source: 'claude',
+      matchText: '[redacted_email] [redacted_phone]',
+      sanitizedSummary: 'Philosophy, music, and emotional honesty.',
+      vibeCheckCard: 'vibe',
+      embedding: vectorWithPeak(0, 0.95),
+      embeddingModel: setup.deps.config.embeddingModel,
+      piiRiskScore: 50,
+      createdAt: setup.deps.clock().toISOString(),
+      updatedAt: setup.deps.clock().toISOString()
+    });
+    await setup.repository.upsertPreferences({
+      userId: partnerId,
+      genderIdentity: 'F',
+      attractedTo: ['M'],
+      ageMin: 24,
+      ageMax: 31
+    });
+
+    const response = await setup.app.request('/v1/internal/drops/run', {
+      method: 'POST',
+      headers: {
+        'X-Internal-Admin-Token': 'test-admin'
+      }
+    });
+
+    expect(response.status).toBe(200);
+    expect(pairInputs).toHaveLength(1);
+    expect([pairInputs[0]?.profileA, pairInputs[0]?.profileB].sort()).toEqual([
+      'I care about writing, systems, and slow conversations.',
+      'Philosophy, music, and emotional honesty.'
+    ]);
+  });
+
+  it('returns a private invite summary for the viewer', async () => {
+    const setup = await buildTestApp();
+
+    const response = await setup.app.request('/v1/referrals/me', {
+      headers: { Authorization: 'Bearer token-user' }
+    });
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      invite_url: expect.stringMatching(/\/\?invite=[A-Z0-9]{8}$/),
+      invite_code: expect.stringMatching(/^[A-Z0-9]{8}$/),
+      landed_referrals: 0,
+      max_landed_referrals: 2,
+      available_priority_credits: 0,
+      remaining_referral_rewards: 2,
+      can_invite: true
+    });
+  });
+
+  it('claims a valid invite for a new user and rejects self-referral', async () => {
+    const setup = await buildTestApp();
+    const inviteResponse = await setup.app.request('/v1/referrals/me', {
+      headers: { Authorization: 'Bearer token-user' }
+    });
+    const inviteBody = await inviteResponse.json();
+    const inviteCode = inviteBody.invite_code as string;
+
+    const selfClaim = await setup.app.request('/v1/referrals/claim', {
+      method: 'POST',
+      headers: {
+        Authorization: 'Bearer token-user',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ invite_code: inviteCode })
+    });
+    expect(selfClaim.status).toBe(422);
+
+    const inviteeId = crypto.randomUUID();
+    await setup.repository.upsertUser({
+      id: inviteeId,
+      email: 'invitee@example.com',
+      status: 'processing',
+      createdAt: setup.deps.clock().toISOString(),
+      lastActiveAt: setup.deps.clock().toISOString()
+    });
+    setup.auth.seedToken('token-invitee', { id: inviteeId, email: 'invitee@example.com' });
+
+    const claim = await setup.app.request('/v1/referrals/claim', {
+      method: 'POST',
+      headers: {
+        Authorization: 'Bearer token-invitee',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ invite_code: inviteCode.toLowerCase() })
+    });
+
+    expect(claim.status).toBe(200);
+    expect(await claim.json()).toEqual({
+      claimed: true,
+      eligible_for_reward: true,
+      reason: null
+    });
+  });
+
+  it('qualifies a claimed referral on first waitlist enroll and grants both credits', async () => {
+    const setup = await buildTestApp();
+    const inviteResponse = await setup.app.request('/v1/referrals/me', {
+      headers: { Authorization: 'Bearer token-user' }
+    });
+    const inviteCode = (await inviteResponse.json()).invite_code as string;
+
+    const inviteeId = crypto.randomUUID();
+    await setup.repository.upsertUser({
+      id: inviteeId,
+      email: 'invitee@example.com',
+      status: 'ready',
+      createdAt: setup.deps.clock().toISOString(),
+      lastActiveAt: setup.deps.clock().toISOString()
+    });
+    setup.auth.seedToken('token-invitee', { id: inviteeId, email: 'invitee@example.com' });
+
+    await setup.app.request('/v1/referrals/claim', {
+      method: 'POST',
+      headers: {
+        Authorization: 'Bearer token-invitee',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ invite_code: inviteCode })
+    });
+
+    await setup.repository.upsertProfile({
+      userId: inviteeId,
+      source: 'chatgpt',
+      matchText: 'I like systems, philosophy, and honest conversation.',
+      sanitizedSummary: 'I like systems, philosophy, and honest conversation.',
+      vibeCheckCard: 'vibe',
+      embedding: vectorWithPeak(4),
+      embeddingModel: setup.deps.config.embeddingModel,
+      piiRiskScore: 0,
+      createdAt: setup.deps.clock().toISOString(),
+      updatedAt: setup.deps.clock().toISOString()
+    });
+    await setup.repository.upsertPreferences({
+      userId: inviteeId,
+      genderIdentity: 'F',
+      attractedTo: ['M'],
+      ageMin: 24,
+      ageMax: 34
+    });
+
+    const enroll = await setup.app.request('/v1/waitlist/enroll', {
+      method: 'POST',
+      headers: {
+        Authorization: 'Bearer token-invitee'
+      }
+    });
+
+    expect(enroll.status).toBe(200);
+    expect(await enroll.json()).toEqual({ enrolled: true, status: 'waiting' });
+
+    const inviterCredits = await setup.repository.countAvailablePriorityCredits(setup.user.id);
+    const inviteeCredits = await setup.repository.countAvailablePriorityCredits(inviteeId);
+    const rewardedReferral = await setup.repository.getReferralByInviteeUserId(inviteeId);
+    const inviteeUser = await setup.repository.getUserById(inviteeId);
+
+    expect(inviterCredits).toBe(1);
+    expect(inviteeCredits).toBe(1);
+    expect(rewardedReferral?.status).toBe('rewarded');
+    expect(inviteeUser?.queueEnteredAt).toBeDefined();
+  });
+
+  it('lets a priority-credit user take first pass in matching and consumes only one credit per drop', async () => {
+    const setup = await buildTestApp();
+    const userAId = setup.user.id;
+    const userBId = crypto.randomUUID();
+    const userCId = crypto.randomUUID();
+
+    await seedEligibleWaitingUser(setup, {
+      userId: userAId,
+      email: setup.user.email,
+      genderIdentity: 'M',
+      attractedTo: ['F'],
+      embeddingIndex: 11,
+      matchText: 'User A likes essays and systems.'
+    });
+
+    await setup.repository.upsertUser({
+      ...(await setup.repository.getUserById(userAId))!,
+      queueEnteredAt: '2026-03-03T12:00:00.000Z'
+    });
+
+    await seedEligibleWaitingUser(setup, {
+      userId: userBId,
+      email: 'userb@example.com',
+      genderIdentity: 'F',
+      attractedTo: ['M'],
+      embeddingIndex: 11,
+      peak: 0.98,
+      matchText: 'User B likes essays and systems too.'
+    });
+
+    await seedEligibleWaitingUser(setup, {
+      userId: userCId,
+      email: 'userc@example.com',
+      genderIdentity: 'M',
+      attractedTo: ['F'],
+      embeddingIndex: 11,
+      peak: 0.97,
+      matchText: 'User C likes essays and systems too.'
+    });
+
+    await setup.repository.upsertUser({
+      ...(await setup.repository.getUserById(userBId))!,
+      queueEnteredAt: '2026-03-03T12:01:00.000Z'
+    });
+    await setup.repository.upsertUser({
+      ...(await setup.repository.getUserById(userCId))!,
+      queueEnteredAt: '2026-03-03T12:02:00.000Z'
+    });
+
+    const referralIdOne = crypto.randomUUID();
+    const referralIdTwo = crypto.randomUUID();
+    await setup.repository.createPriorityCredit({
+      id: crypto.randomUUID(),
+      userId: userCId,
+      sourceType: 'referral_invitee',
+      referralId: referralIdOne,
+      status: 'available',
+      availableAt: setup.deps.clock().toISOString(),
+      createdAt: setup.deps.clock().toISOString()
+    });
+    await setup.repository.createPriorityCredit({
+      id: crypto.randomUUID(),
+      userId: userCId,
+      sourceType: 'referral_inviter',
+      referralId: referralIdTwo,
+      status: 'available',
+      availableAt: new Date(setup.deps.clock().getTime() + 1_000).toISOString(),
+      createdAt: new Date(setup.deps.clock().getTime() + 1_000).toISOString()
+    });
+
+    const response = await setup.app.request('/v1/internal/drops/run', {
+      method: 'POST',
+      headers: {
+        'X-Internal-Admin-Token': 'test-admin'
+      }
+    });
+
+    expect(response.status).toBe(200);
+    const responseBody = await response.json();
+    expect(responseBody.status).toBe('published');
+
+    const match = [...setup.repository.matches.values()].find((item) => item.dropId === responseBody.drop_id);
+    expect([match?.userAId, match?.userBId].sort()).toEqual([userBId, userCId].sort());
+
+    expect(await setup.repository.countAvailablePriorityCredits(userCId)).toBe(1);
+
+    const consumedAgain = await setup.repository.consumePriorityCreditsForDrop(responseBody.drop_id as string, setup.deps.clock().toISOString());
+    expect(consumedAgain).toEqual([]);
+    expect(await setup.repository.countAvailablePriorityCredits(userCId)).toBe(1);
+  });
+
+  it('preserves priority credits when a drop fails', async () => {
+    const setup = await buildTestApp();
+    await setup.repository.createPriorityCredit({
+      id: crypto.randomUUID(),
+      userId: setup.user.id,
+      sourceType: 'referral_invitee',
+      referralId: crypto.randomUUID(),
+      status: 'available',
+      availableAt: setup.deps.clock().toISOString(),
+      createdAt: setup.deps.clock().toISOString()
+    });
+
+    const response = await setup.app.request('/v1/internal/drops/run', {
+      method: 'POST',
+      headers: {
+        'X-Internal-Admin-Token': 'test-admin'
+      }
+    });
+
+    expect(response.status).toBe(422);
+    expect(await setup.repository.countAvailablePriorityCredits(setup.user.id)).toBe(1);
   });
 });

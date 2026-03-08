@@ -48,6 +48,9 @@ const sha256Schema = z.string().superRefine((value, ctx) => {
 });
 
 const genderSchema = z.enum(GENDER_IDENTITY);
+const inviteCodeSchema = safeText(4, 32)
+  .transform((value) => value.toUpperCase())
+  .refine((value) => /^[A-Z0-9]+$/.test(value), 'Invite code must use letters and numbers only.');
 
 export const magicLinkSchema = z
   .object({
@@ -134,10 +137,25 @@ export const feedbackSchema = z
   })
   .strict();
 
+export const triggerDropSchema = z
+  .object({
+    drop_id: z.string().uuid().optional(),
+    mode: safeText(1, 32).optional()
+  })
+  .strict();
+
+export const referralClaimSchema = z
+  .object({
+    invite_code: inviteCodeSchema
+  })
+  .strict();
+
 export type MagicLinkInput = z.infer<typeof magicLinkSchema>;
 export type UploadInitInput = z.infer<typeof uploadInitSchema>;
 export type UploadCompleteInput = z.infer<typeof uploadCompleteSchema>;
 export type IntakeSummaryInput = z.infer<typeof intakeSummarySchema>;
+export type TriggerDropInput = z.infer<typeof triggerDropSchema>;
+export type ReferralClaimInput = z.infer<typeof referralClaimSchema>;
 export type PreferencesInput = z.infer<typeof preferencesSchema>;
 export type ConfessionInput = z.infer<typeof confessionSchema>;
 export type SendMessageInput = z.infer<typeof sendMessageSchema>;

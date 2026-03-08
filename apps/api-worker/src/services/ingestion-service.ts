@@ -1,3 +1,4 @@
+import { piiRiskScoreFromReplacements, redactSensitiveText } from '@contexted/shared';
 import type { AppDependencies } from '../dependencies.js';
 
 export type ProcessIngestionInput = {
@@ -24,10 +25,18 @@ export async function processIngestionJob(deps: AppDependencies, input: ProcessI
   });
 
   try {
+    const redactedMatchText = redactSensitiveText(input.sourceText);
+    const matchText = redactedMatchText.text.trim();
+    if (matchText.length === 0) {
+      throw new Error('Match text is empty after redaction.');
+    }
+
     const redacted = await deps.llmService.redactAndSummarize({
-      sourceText: input.sourceText,
+      sourceText: matchText,
       source: ingestion.source
     });
+
+    const scrubbedSummary = redactSensitiveText(redacted.summary);
 
     await deps.repository.updateIngestJob(job.id, {
       progress: 55,
@@ -35,23 +44,32 @@ export async function processIngestionJob(deps: AppDependencies, input: ProcessI
     });
 
     const vibeCheck = await deps.llmService.generateVibeCheck({
-      summary: redacted.summary,
+      summary: scrubbedSummary.text,
       source: ingestion.source
     });
 
-    const embedding = await deps.embeddingService.embed(redacted.summary);
+    const embedding = await deps.embeddingService.embed(matchText);
 
     await deps.repository.upsertProfile({
       userId: ingestion.userId,
       source: ingestion.source,
-      sanitizedSummary: redacted.summary,
+      matchText,
+      sanitizedSummary: scrubbedSummary.text,
       vibeCheckCard: vibeCheck,
       embedding,
-      embeddingModel: 'text-embedding-3-small',
-      piiRiskScore: redacted.piiRiskScore,
+      embeddingModel: deps.config.embeddingModel,
+      piiRiskScore: Math.max(
+        redacted.piiRiskScore,
+        piiRiskScoreFromReplacements(redactedMatchText.replacements),
+        piiRiskScoreFromReplacements(scrubbedSummary.replacements)
+      ),
       createdAt: now,
       updatedAt: deps.clock().toISOString()
     });
+
+    console.info(
+      `[ingest] completed job=${job.id} user=${ingestion.userId} matchChars=${matchText.length} summaryChars=${scrubbedSummary.text.length}`
+    );
 
     await deps.repository.updateProfileIngestion(ingestion.id, {
       status: 'completed',

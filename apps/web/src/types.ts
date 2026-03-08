@@ -45,3 +45,25 @@ export type MessageList = {
   poll_after_ms: number;
   chat_expires_at: string;
 };
+
+export type ReferralOverviewResponse = {
+  invite_url: string | null;
+  invite_code: string | null;
+  landed_referrals: number;
+  max_landed_referrals: number;
+  available_priority_credits: number;
+  remaining_referral_rewards: number;
+  can_invite: boolean;
+};
+
+export type ReferralClaimResponse = {
+  claimed: boolean;
+  eligible_for_reward: boolean;
+  reason?: string;
+};
+
+export type ReferralShareContent = {
+  title: string;
+  text: string;
+  url: string;
+};

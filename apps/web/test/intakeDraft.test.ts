@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
+import { redactSensitiveText } from '../../../packages/shared/src/sanitization.js';
 import {
   clearActiveJobId,
   clearIntakeDraft,
@@ -47,5 +48,11 @@ describe('intake draft helpers', () => {
     expect(getActiveJobId()).toBeNull();
     setActiveJobId('job-123');
     expect(getActiveJobId()).toBe('job-123');
+  });
+
+  it('matches the browser-side redaction behavior used before intake submission', () => {
+    expect(redactSensitiveText('Reach me at user@example.com and 415-555-1212').text).toBe(
+      'Reach me at [redacted_email] and [redacted_phone]'
+    );
   });
 });

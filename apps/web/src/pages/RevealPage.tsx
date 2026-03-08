@@ -167,11 +167,12 @@ export function RevealPage(): ReactElement {
                     transition: { ...spring, delay: 0.28 },
                   })}
             >
-              <span className="text-[12px] font-bold tracking-[0.18em] text-accent-ink">ALPHA READ</span>
-              <p className="mt-3 font-heading text-base font-semibold text-text-primary">Memory is the moat here.</p>
+              <span className="text-[12px] font-bold tracking-[0.18em] text-accent-ink">FIRST READ</span>
+              <p className="mt-3 font-heading text-base font-semibold text-text-primary">
+                A few shared threads are already clear.
+              </p>
               <p className="mt-2 text-sm leading-relaxed text-text-secondary">
-                This reveal is part of an evolving alpha experiment: can the memory your AI provider keeps about
-                you surface someone in a similar chapter?
+                These are the early patterns that made this introduction feel worth surfacing.
               </p>
             </motion.section>
           </div>

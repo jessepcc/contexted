@@ -1,12 +1,16 @@
+import type { UserCandidates } from '@contexted/shared';
 import type {
   DropRecord,
   IngestJobRecord,
+  InviteCodeRecord,
   MatchFeedbackRecord,
   MatchRecord,
   MessageRecord,
   PreferencesRecord,
+  PriorityCreditRecord,
   ProfileIngestionRecord,
   ProfileRecord,
+  ReferralRecord,
   RevealTokenRecord,
   SharedVibeCheckRecord,
   UserRecord
@@ -19,6 +23,51 @@ function sortByCreatedAt<T extends { createdAt: string }>(records: T[]): T[] {
 
 function sortByScheduledAt<T extends { scheduledAt: string }>(records: T[]): T[] {
   return [...records].sort((left, right) => left.scheduledAt.localeCompare(right.scheduledAt));
+}
+
+function cosineSimilarity(left: number[], right: number[]): number {
+  const dimensions = Math.min(left.length, right.length);
+  if (dimensions === 0) {
+    return 0;
+  }
+
+  let dot = 0;
+  let leftNorm = 0;
+  let rightNorm = 0;
+
+  for (let index = 0; index < dimensions; index += 1) {
+    const leftValue = left[index] ?? 0;
+    const rightValue = right[index] ?? 0;
+    dot += leftValue * rightValue;
+    leftNorm += leftValue * leftValue;
+    rightNorm += rightValue * rightValue;
+  }
+
+  if (leftNorm === 0 || rightNorm === 0) {
+    return 0;
+  }
+
+  return dot / (Math.sqrt(leftNorm) * Math.sqrt(rightNorm));
+}
+
+function areMutuallyCompatible(source: PreferencesRecord, candidate: PreferencesRecord): boolean {
+  return (
+    source.attractedTo.includes(candidate.genderIdentity) &&
+    candidate.attractedTo.includes(source.genderIdentity)
+  );
+}
+
+function haveMatchedBefore(matches: Iterable<MatchRecord>, userAId: string, userBId: string): boolean {
+  for (const match of matches) {
+    if (
+      (match.userAId === userAId && match.userBId === userBId) ||
+      (match.userAId === userBId && match.userBId === userAId)
+    ) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 export class InMemoryRepository implements Repository {
@@ -40,6 +89,10 @@ export class InMemoryRepository implements Repository {
   }> = [];
   public readonly matchFeedback = new Map<string, MatchFeedbackRecord>();
   public readonly sharedVibeChecks = new Map<string, SharedVibeCheckRecord>();
+  public readonly inviteCodes = new Map<string, InviteCodeRecord>();
+  public readonly inviteCodesByCode = new Map<string, InviteCodeRecord>();
+  public readonly referrals = new Map<string, ReferralRecord>();
+  public readonly priorityCredits = new Map<string, PriorityCreditRecord>();
   public readonly idempotency = new Map<string, { statusCode: number; responseBody: unknown }>();
 
   async upsertUser(user: UserRecord): Promise<UserRecord> {
@@ -83,12 +136,86 @@ export class InMemoryRepository implements Repository {
     });
   }
 
+  async hasAnyMatchForUser(userId: string): Promise<boolean> {
+    return [...this.matches.values()].some((match) => match.userAId === userId || match.userBId === userId);
+  }
+
   async upsertProfile(profile: ProfileRecord): Promise<void> {
     this.profiles.set(profile.userId, profile);
   }
 
   async getProfileByUserId(userId: string): Promise<ProfileRecord | null> {
     return this.profiles.get(userId) ?? null;
+  }
+
+  async getProfilesByUserIds(userIds: string[]): Promise<ProfileRecord[]> {
+    return userIds.flatMap((userId) => {
+      const profile = this.profiles.get(userId);
+      return profile ? [profile] : [];
+    });
+  }
+
+  async buildCandidateMap(input: { topK: number }): Promise<UserCandidates[]> {
+    const topK = Math.max(1, input.topK);
+    const waitingUsers = [...this.users.values()].filter((user) => user.status === 'waiting' && !user.deletedAt);
+    const matches = [...this.matches.values()];
+    const availableCreditsByUser = new Map<string, number>();
+
+    for (const credit of this.priorityCredits.values()) {
+      if (credit.status !== 'available') {
+        continue;
+      }
+
+      availableCreditsByUser.set(credit.userId, (availableCreditsByUser.get(credit.userId) ?? 0) + 1);
+    }
+
+    return waitingUsers.flatMap((user) => {
+      const sourceProfile = this.profiles.get(user.id);
+      const sourcePreferences = this.preferences.get(user.id);
+      if (!sourceProfile || !sourcePreferences || sourceProfile.matchText.trim().length === 0) {
+        return [];
+      }
+
+      const candidates = waitingUsers
+        .filter((candidate) => candidate.id !== user.id)
+        .flatMap((candidate) => {
+          const candidateProfile = this.profiles.get(candidate.id);
+          const candidatePreferences = this.preferences.get(candidate.id);
+          if (!candidateProfile || !candidatePreferences || candidateProfile.matchText.trim().length === 0) {
+            return [];
+          }
+
+          if (candidateProfile.embeddingModel !== sourceProfile.embeddingModel) {
+            return [];
+          }
+
+          if (!areMutuallyCompatible(sourcePreferences, candidatePreferences)) {
+            return [];
+          }
+
+          if (haveMatchedBefore(matches, user.id, candidate.id)) {
+            return [];
+          }
+
+          return [
+            {
+              targetUserId: candidate.id,
+              score: cosineSimilarity(sourceProfile.embedding, candidateProfile.embedding)
+            }
+          ];
+        })
+        .sort((left, right) => right.score - left.score || left.targetUserId.localeCompare(right.targetUserId))
+        .slice(0, topK);
+
+      return [
+        {
+          userId: user.id,
+          priorityTier: (availableCreditsByUser.get(user.id) ?? 0) > 0 ? 1 : 0,
+          queueEnteredAt: user.queueEnteredAt,
+          candidates
+        }
+      ];
+    });
   }
 
   async createProfileIngestion(ingestion: ProfileIngestionRecord): Promise<void> {
@@ -325,6 +452,132 @@ export class InMemoryRepository implements Repository {
     });
 
     return true;
+  }
+
+  async createInviteCode(inviteCode: InviteCodeRecord): Promise<InviteCodeRecord> {
+    const existing = this.inviteCodes.get(inviteCode.userId);
+    if (existing && !existing.disabledAt) {
+      return existing;
+    }
+
+    const byCode = this.inviteCodesByCode.get(inviteCode.code);
+    if (byCode && byCode.userId !== inviteCode.userId) {
+      throw new Error('Invite code already exists.');
+    }
+
+    if (existing) {
+      this.inviteCodesByCode.delete(existing.code);
+    }
+    this.inviteCodes.set(inviteCode.userId, inviteCode);
+    this.inviteCodesByCode.set(inviteCode.code, inviteCode);
+    return inviteCode;
+  }
+
+  async getInviteCodeByUserId(userId: string): Promise<InviteCodeRecord | null> {
+    return this.inviteCodes.get(userId) ?? null;
+  }
+
+  async getInviteCodeByCode(code: string): Promise<InviteCodeRecord | null> {
+    const inviteCode = this.inviteCodesByCode.get(code) ?? null;
+    if (!inviteCode || inviteCode.disabledAt) {
+      return null;
+    }
+    return inviteCode;
+  }
+
+  async createReferral(referral: ReferralRecord): Promise<ReferralRecord> {
+    if (referral.inviteeUserId) {
+      const existingForInvitee = [...this.referrals.values()].find((item) => item.inviteeUserId === referral.inviteeUserId);
+      if (existingForInvitee) {
+        throw new Error('Referral already exists for invitee.');
+      }
+    }
+
+    this.referrals.set(referral.id, referral);
+    return referral;
+  }
+
+  async getReferralByInviteeUserId(userId: string): Promise<ReferralRecord | null> {
+    const referrals = [...this.referrals.values()]
+      .filter((referral) => referral.inviteeUserId === userId)
+      .sort((left, right) => right.createdAt.localeCompare(left.createdAt));
+    return referrals[0] ?? null;
+  }
+
+  async updateReferral(referralId: string, update: Partial<ReferralRecord>): Promise<ReferralRecord | null> {
+    const existing = this.referrals.get(referralId);
+    if (!existing) {
+      return null;
+    }
+
+    const next: ReferralRecord = {
+      ...existing,
+      ...update,
+      updatedAt: update.updatedAt ?? existing.updatedAt
+    };
+    this.referrals.set(referralId, next);
+    return next;
+  }
+
+  async countQualifiedReferralsByInviterUserId(userId: string): Promise<number> {
+    return [...this.referrals.values()].filter(
+      (referral) => referral.inviterUserId === userId && (referral.status === 'qualified' || referral.status === 'rewarded')
+    ).length;
+  }
+
+  async createPriorityCredit(credit: PriorityCreditRecord): Promise<void> {
+    const existing = [...this.priorityCredits.values()].find(
+      (item) => item.referralId === credit.referralId && item.userId === credit.userId
+    );
+    if (existing) {
+      return;
+    }
+
+    this.priorityCredits.set(credit.id, credit);
+  }
+
+  async countAvailablePriorityCredits(userId: string): Promise<number> {
+    return [...this.priorityCredits.values()].filter((credit) => credit.userId === userId && credit.status === 'available').length;
+  }
+
+  async consumePriorityCreditsForDrop(dropId: string, consumedAt: string): Promise<string[]> {
+    const matchedUsers = new Set<string>();
+    for (const match of this.matches.values()) {
+      if (match.dropId !== dropId) {
+        continue;
+      }
+      matchedUsers.add(match.userAId);
+      matchedUsers.add(match.userBId);
+    }
+
+    const consumedUsers: string[] = [];
+
+    for (const userId of matchedUsers) {
+      const alreadyConsumed = [...this.priorityCredits.values()].some(
+        (credit) => credit.userId === userId && credit.consumedInDropId === dropId
+      );
+      if (alreadyConsumed) {
+        continue;
+      }
+
+      const nextCredit = [...this.priorityCredits.values()]
+        .filter((credit) => credit.userId === userId && credit.status === 'available')
+        .sort((left, right) => left.availableAt.localeCompare(right.availableAt) || left.createdAt.localeCompare(right.createdAt) || left.id.localeCompare(right.id))[0];
+
+      if (!nextCredit) {
+        continue;
+      }
+
+      this.priorityCredits.set(nextCredit.id, {
+        ...nextCredit,
+        status: 'consumed',
+        consumedAt,
+        consumedInDropId: dropId
+      });
+      consumedUsers.push(userId);
+    }
+
+    return consumedUsers;
   }
 
   async getIdempotency(

@@ -30,3 +30,17 @@ export async function shareOrCopy(input: {
 
   throw new Error('Sharing is not available on this device.');
 }
+
+export async function copyToClipboard(input: {
+  text: string;
+  url?: string;
+}): Promise<'copied'> {
+  const fallbackText = [input.text, input.url].filter(Boolean).join(' ');
+
+  if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+    await navigator.clipboard.writeText(fallbackText);
+    return 'copied';
+  }
+
+  throw new Error('Copy is not available on this device.');
+}

@@ -2,10 +2,15 @@ import { useEffect, useState } from 'react';
 import type { ReactElement } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import { PageShell } from '../components/PageShell.js';
+import { getInviteCodeFromSearch, savePendingInviteCode } from '../referrals.js';
 
 export function parseHashToken(hash: string): string | null {
   const params = new URLSearchParams(hash.replace(/^#/, ''));
   return params.get('access_token');
+}
+
+export function parseInviteFromSearch(search: string): string | null {
+  return getInviteCodeFromSearch(search);
 }
 
 export function VerifyPage(): ReactElement {
@@ -14,8 +19,12 @@ export function VerifyPage(): ReactElement {
 
   useEffect(() => {
     const token = parseHashToken(window.location.hash);
+    const inviteCode = parseInviteFromSearch(window.location.search);
     if (token) {
       localStorage.setItem('contexted_token', token);
+      if (inviteCode) {
+        savePendingInviteCode(inviteCode);
+      }
       void navigate({ to: '/app' });
     } else {
       setError('We couldn’t read that sign-in link. Request a fresh one and we’ll keep your place in the alpha.');

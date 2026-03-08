@@ -1,12 +1,15 @@
-import type { SourceKind, UserStatus } from '@contexted/shared';
+import type { SourceKind, UserCandidates, UserStatus } from '@contexted/shared';
 import type {
   DropRecord,
   IngestJobRecord,
+  InviteCodeRecord,
   MatchRecord,
   MessageRecord,
   PreferencesRecord,
+  PriorityCreditRecord,
   ProfileIngestionRecord,
   ProfileRecord,
+  ReferralRecord,
   RevealTokenRecord,
   SharedVibeCheckRecord,
   UserRecord
@@ -61,9 +64,12 @@ export type Repository = {
   getUserById(userId: string): Promise<UserRecord | null>;
   findOrCreateUserByEmail(email: string): Promise<UserRecord>;
   setUserStatus(userId: string, status: UserStatus): Promise<void>;
+  hasAnyMatchForUser(userId: string): Promise<boolean>;
 
   upsertProfile(profile: ProfileRecord): Promise<void>;
   getProfileByUserId(userId: string): Promise<ProfileRecord | null>;
+  getProfilesByUserIds(userIds: string[]): Promise<ProfileRecord[]>;
+  buildCandidateMap(input: { topK: number }): Promise<UserCandidates[]>;
 
   createProfileIngestion(ingestion: ProfileIngestionRecord): Promise<void>;
   getProfileIngestionById(ingestionId: string): Promise<ProfileIngestionRecord | null>;
@@ -101,6 +107,19 @@ export type Repository = {
   upsertSharedVibeCheck(input: SharedVibeCheckRecord): Promise<void>;
   markShareClicked(shareToken: string): Promise<boolean>;
 
+  createInviteCode(inviteCode: InviteCodeRecord): Promise<InviteCodeRecord>;
+  getInviteCodeByUserId(userId: string): Promise<InviteCodeRecord | null>;
+  getInviteCodeByCode(code: string): Promise<InviteCodeRecord | null>;
+
+  createReferral(referral: ReferralRecord): Promise<ReferralRecord>;
+  getReferralByInviteeUserId(userId: string): Promise<ReferralRecord | null>;
+  updateReferral(referralId: string, update: Partial<ReferralRecord>): Promise<ReferralRecord | null>;
+  countQualifiedReferralsByInviterUserId(userId: string): Promise<number>;
+
+  createPriorityCredit(credit: PriorityCreditRecord): Promise<void>;
+  countAvailablePriorityCredits(userId: string): Promise<number>;
+  consumePriorityCreditsForDrop(dropId: string, consumedAt: string): Promise<string[]>;
+
   getIdempotency(scope: string, userId: string, key: string): Promise<{ statusCode: number; responseBody: unknown } | null>;
   saveIdempotency(input: {
     scope: string;
@@ -122,6 +141,9 @@ export type AppConfig = {
   chatPollBackgroundSec: number;
   processingPollMs: number;
   maxJsonBodyBytes: number;
+  matchTopK: number;
+  internalAdminToken?: string;
+  embeddingModel: string;
 };
 
 export type AppDependencies = {

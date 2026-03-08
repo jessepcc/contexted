@@ -1,6 +1,7 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { apiRequest } from '../src/api.js';
-import { parseHashToken } from '../src/pages/VerifyPage.js';
+import { parseHashToken, parseInviteFromSearch } from '../src/pages/VerifyPage.js';
+import { buildMagicLinkRedirect } from '../src/referrals.js';
 
 describe('LoginPage API call', () => {
   beforeEach(() => {
@@ -55,6 +56,11 @@ describe('LoginPage API call', () => {
     const [, init] = mockFetch.mock.calls[0];
     expect(init.headers['Content-Type']).toBe('application/json');
   });
+
+  it('builds a magic link redirect that preserves a pending invite code', () => {
+    localStorage.setItem('contexted_pending_invite_code', 'quiet-link');
+    expect(buildMagicLinkRedirect('http://localhost:5173')).toBe('http://localhost:5173/auth/verify?invite=quiet-link');
+  });
 });
 
 describe('VerifyPage hash parsing', () => {
@@ -74,6 +80,11 @@ describe('VerifyPage hash parsing', () => {
   it('handles hash without leading #', () => {
     const hash = 'access_token=xyz789&token_type=bearer';
     expect(parseHashToken(hash)).toBe('xyz789');
+  });
+
+  it('extracts invite code from search params', () => {
+    expect(parseInviteFromSearch('?invite=quiet-link')).toBe('quiet-link');
+    expect(parseInviteFromSearch('?invite=bad code')).toBeNull();
   });
 });
 

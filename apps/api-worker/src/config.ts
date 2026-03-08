@@ -23,6 +23,9 @@ export function loadConfig(env: Record<string, string | undefined>): AppConfig {
     chatPollForegroundSec: toInt(env.CHAT_POLL_FOREGROUND_SEC, 5),
     chatPollBackgroundSec: toInt(env.CHAT_POLL_BACKGROUND_SEC, 30),
     processingPollMs: toInt(env.PROCESSING_POLL_MS, 2000),
-    maxJsonBodyBytes: toInt(env.MAX_JSON_BODY_BYTES, 128 * 1024)
+    maxJsonBodyBytes: toInt(env.MAX_JSON_BODY_BYTES, 128 * 1024),
+    matchTopK: toInt(env.MATCH_TOP_K, 20),
+    internalAdminToken: env.INTERNAL_ADMIN_TOKEN,
+    embeddingModel: env.EMBEDDING_MODEL ?? 'text-embedding-3-small'
   };
 }

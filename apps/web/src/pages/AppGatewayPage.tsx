@@ -5,6 +5,7 @@ import { apiRequest } from '../api.js';
 import { AppContext } from '../AppContext.js';
 import { PageShell } from '../components/PageShell.js';
 import { clearActiveJobId, loadIntakeDraft, getActiveJobId } from '../intakeDraft.js';
+import { claimPendingInvite } from '../referrals.js';
 import type { BootstrapResponse } from '../types.js';
 
 export function AppGatewayPage(): ReactElement {
@@ -27,6 +28,12 @@ export function AppGatewayPage(): ReactElement {
           match: bootstrap.match,
           drop: bootstrap.drop
         });
+
+        try {
+          await claimPendingInvite();
+        } catch (claimError) {
+          console.warn('Referral claim failed', claimError);
+        }
 
         const intakeDraft = loadIntakeDraft();
 
@@ -73,7 +80,7 @@ export function AppGatewayPage(): ReactElement {
 
   return (
     <PageShell blobs="landing">
-      <div className="flex flex-col items-center gap-4 px-6 pt-24 text-center">
+      <div className="mx-auto flex w-full max-w-xl flex-col items-center gap-4 px-4 pt-14 text-center sm:px-6 sm:pt-20 lg:pt-24">
         <h1 className="font-heading text-3xl font-bold text-text-primary">Checking your place in the alpha</h1>
         {error ? (
           <p className="text-sm leading-relaxed text-text-secondary">{error}</p>

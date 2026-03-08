@@ -1,3 +1,4 @@
+import { useNavigate } from '@tanstack/react-router';
 import { motion } from 'motion/react';
 import type { ReactElement } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -12,6 +13,7 @@ import type { MatchResponse, MessageList } from '../types.js';
 type ReportStatus = 'idle' | 'submitting' | 'submitted' | 'rate_limited';
 
 export function ChatPage(): ReactElement {
+  const navigate = useNavigate();
   const { appState } = useAppContext();
   const reduced = useReducedMotion();
   const countdown = useCountdown(
@@ -33,6 +35,8 @@ export function ChatPage(): ReactElement {
   const chatEndRef = useRef<HTMLDivElement>(null);
   const [showReport, setShowReport] = useState(false);
   const viewerId = getViewerIdFromToken();
+  const matchLoaded = match !== null;
+  const conversationReady = match?.state === 'unlocked';
 
   const isTimeLow = countdown !== null && countdown < '01:00:00';
 
@@ -40,7 +44,20 @@ export function ChatPage(): ReactElement {
     const current = await apiRequest<MatchResponse>('/v1/matches/current');
     matchIdRef.current = current.match_id;
     setMatch(current);
-  }, []);
+    setError(null);
+
+    if (current.state === 'pending_confession') {
+      void navigate({ to: '/app/reveal' });
+      return;
+    }
+
+    if (current.state !== 'unlocked') {
+      cursorRef.current = null;
+      etagRef.current = null;
+      setMessages([]);
+      void navigate({ to: '/app/expired' });
+    }
+  }, [navigate]);
 
   const loadMessages = useCallback(async () => {
     const id = matchIdRef.current;
@@ -86,13 +103,17 @@ export function ChatPage(): ReactElement {
   }, [loadMatch]);
 
   usePolling({
-    enabled: true,
+    enabled: Boolean(matchIdRef.current) && conversationReady,
     intervalMs: pollInterval,
     backgroundIntervalMs: 30000,
     onTick: async () => {
       try {
         await loadMessages();
       } catch (reason) {
+        if (reason instanceof HttpError && reason.status === 422) {
+          void navigate({ to: '/app/expired' });
+          return;
+        }
         setError(reason instanceof Error ? reason.message : 'Failed to refresh messages.');
       }
     }
@@ -119,9 +140,13 @@ export function ChatPage(): ReactElement {
       setBody('');
       await loadMessages();
     } catch (reason) {
+      if (reason instanceof HttpError && reason.status === 422) {
+        void navigate({ to: '/app/expired' });
+        return;
+      }
       setError(reason instanceof HttpError ? reason.payload.message : 'Failed to send your message.');
     }
-  }, [body, loadMessages]);
+  }, [body, loadMessages, navigate]);
 
   const submitReport = useCallback(async () => {
     if (!matchIdRef.current || reportReason.trim().length === 0) return;
@@ -167,6 +192,16 @@ export function ChatPage(): ReactElement {
   };
 
   const spring = { type: 'spring' as const, stiffness: 200, damping: 20 };
+  const emptyStateTitle = !matchLoaded
+    ? 'Opening the conversation…'
+    : conversationReady
+      ? 'You’re in. Start with the overlap that felt real.'
+      : 'This chat window already closed.';
+  const emptyStateBody = !matchLoaded
+    ? 'We’re gathering the shared context and checking whether the chat is still open.'
+    : conversationReady
+      ? 'A good first note here is simple: name the line that felt familiar, then ask what it means on their side.'
+      : 'We’re moving you to feedback so you can rate the match instead of staring at a dead composer.';
 
   const renderReportPanel = (fieldId: string): ReactElement =>
     reportStatus === 'submitted' ? (
@@ -215,13 +250,13 @@ export function ChatPage(): ReactElement {
     ) : null;
 
   return (
-    <main id="main-content" className="mx-auto flex min-h-dvh w-full max-w-7xl flex-col lg:px-6 lg:py-6">
+    <main id="main-content" className="mx-auto flex min-h-dvh w-full max-w-[92rem] flex-col md:px-4 md:py-4 xl:px-6 xl:py-6">
       <div
-        className="flex min-h-dvh w-full flex-col lg:min-h-[calc(100dvh-3rem)] lg:flex-row lg:overflow-hidden lg:rounded-[32px] lg:border lg:border-border-default"
+        className="flex min-h-dvh w-full flex-col md:min-h-[calc(100dvh-2rem)] md:overflow-hidden md:rounded-[28px] md:border md:border-border-default lg:min-h-[calc(100dvh-3rem)] lg:flex-row lg:rounded-[32px]"
         style={{ background: 'color-mix(in srgb, var(--color-bg-card) 88%, transparent)' }}
       >
         <aside
-          className="hidden lg:flex lg:w-[22rem] xl:w-[25rem] lg:flex-col lg:border-r lg:border-border-default"
+          className="hidden lg:flex lg:w-[22rem] xl:w-[24rem] 2xl:w-[26rem] lg:flex-col lg:border-r lg:border-border-default"
           style={{ background: 'color-mix(in srgb, var(--color-bg-card) 72%, var(--color-bg-elevated))' }}
         >
           <div className="border-b border-border-default px-6 py-6">
@@ -382,15 +417,24 @@ export function ChatPage(): ReactElement {
 
           <div className="flex min-h-0 flex-1 flex-col">
             <div
-              className="flex flex-1 flex-col gap-3 overflow-y-auto px-4 py-4 sm:px-6 lg:px-8 lg:py-6"
+              className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-3 overflow-y-auto px-4 py-4 sm:px-6 lg:px-8 lg:py-6"
               aria-live="polite"
               aria-relevant="additions text"
             >
               {messages.length === 0 ? (
-                <div className="flex flex-1 items-center justify-center">
-                  <p className="max-w-md text-center text-sm leading-relaxed text-text-secondary">
-                    You&rsquo;re in. Start with the overlap that felt real.
-                  </p>
+                <div className="flex flex-1 items-center justify-center py-6">
+                  <div
+                    className="flex w-full max-w-xl flex-col items-center gap-3 rounded-[28px] border border-border-default px-6 py-8 text-center"
+                    style={{ background: 'color-mix(in srgb, var(--color-bg-card) 82%, var(--color-bg-elevated))' }}
+                  >
+                    <p className="font-heading text-xl font-semibold text-text-primary">{emptyStateTitle}</p>
+                    <p className="max-w-lg text-sm leading-relaxed text-text-secondary">{emptyStateBody}</p>
+                    {error ? (
+                      <p className="text-sm text-negative" role="alert">
+                        {error}
+                      </p>
+                    ) : null}
+                  </div>
                 </div>
               ) : (
                 messages.map((message) => {
@@ -428,8 +472,8 @@ export function ChatPage(): ReactElement {
               <div ref={chatEndRef} />
             </div>
 
-            {error ? (
-              <div className="px-4 py-2 sm:px-6 lg:px-8">
+            {error && messages.length > 0 ? (
+              <div className="mx-auto w-full max-w-4xl px-4 py-2 sm:px-6 lg:px-8">
                 <p className="text-sm text-negative" role="alert">{error}</p>
               </div>
             ) : null}
@@ -441,7 +485,7 @@ export function ChatPage(): ReactElement {
             ) : null}
 
             <div className="border-t border-border-default bg-bg-card px-4 py-3 sm:px-6 lg:px-8 lg:py-4">
-              <div className="flex items-center gap-3">
+              <div className="mx-auto flex w-full max-w-4xl items-center gap-3">
                 <label htmlFor="chat-message" className="sr-only">
                   Message
                 </label>
@@ -454,11 +498,12 @@ export function ChatPage(): ReactElement {
                   value={body}
                   onChange={(e) => setBody(e.target.value)}
                   onKeyDown={handleKeyDown}
+                  disabled={!conversationReady}
                 />
                 <motion.button
                   type="button"
                   onClick={send}
-                  disabled={body.trim().length === 0}
+                  disabled={body.trim().length === 0 || !conversationReady}
                   className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-accent text-accent-contrast transition-opacity disabled:opacity-40"
                   aria-label="Send"
                   {...(reduced ? {} : { whileTap: { scale: 0.9, transition: { type: 'spring', stiffness: 500, damping: 15 } } })}

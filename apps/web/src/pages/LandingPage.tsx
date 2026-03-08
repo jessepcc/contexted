@@ -1,12 +1,17 @@
+import { redactSensitiveText } from '@contexted/shared';
 import { useNavigate } from '@tanstack/react-router';
 import { motion } from 'motion/react';
 import type { CSSProperties, ReactElement } from 'react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Button } from '../components/Button.js';
 import { PageShell } from '../components/PageShell.js';
 import { useReducedMotion } from '../hooks/useDelight.js';
 import type { IntakeProvider } from '../intakeDraft.js';
 import { loadIntakeDraft, saveIntakeDraft } from '../intakeDraft.js';
+import { getInviteCodeFromSearch, savePendingInviteCode, trackInviteClick } from '../referrals.js';
+
+const MEMORY_EXPORT_PROMPT =
+  "I'm moving to another service and need to export my data. List every memory you have stored about me, as well as any context you've learned about me from past conversations. Output everything in a single code block so I can easily copy it. Format each entry as: [date saved, if available] - memory content. Make sure to cover all of the following — preserve my words verbatim where possible: Instructions I've given you about how to respond (tone, format, style, 'always do X', 'never do Y'). Personal details: name, location, job, family, interests. Projects, goals, and recurring topics. Tools, languages, and frameworks I use. Preferences and corrections I've made to your behavior. Any other stored context not covered above. Do not summarize, group, or omit any entries. After the code block, confirm whether that is the complete set or if any remain.";
 
 const steps = [
   {
@@ -64,31 +69,31 @@ function getSelectedProviderStyle(provider: IntakeProvider): CSSProperties {
 
 function ChatGptTutorialPreview({ reduced }: { reduced: boolean }): ReactElement {
   return (
-    <div className="rounded-[26px] border border-border-default bg-bg-card p-4">
-      <div className="flex items-center justify-between text-[11px] font-bold tracking-[0.18em] text-text-muted">
+    <div className="rounded-[24px] border border-border-default bg-bg-card p-3 sm:rounded-[26px] sm:p-4">
+      <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] font-bold tracking-[0.18em] text-text-muted">
         <span>MEMORY EXPORT PATH</span>
         <span>Quick path</span>
       </div>
 
       <div
-        className="relative mt-3 overflow-hidden rounded-[22px] border border-border-default p-2"
+        className="relative mt-3 overflow-hidden rounded-[20px] border border-border-default p-2 sm:rounded-[22px]"
         style={{ background: 'color-mix(in srgb, var(--color-bg-card) 78%, var(--color-bg-elevated))' }}
       >
         <motion.div
-          className="pointer-events-none absolute left-2 right-2 top-2 h-11 rounded-[18px] border border-transparent bg-accent-soft"
-          animate={reduced ? undefined : { y: [0, 48, 96, 144, 0] }}
+          className="pointer-events-none absolute left-2 right-2 top-2 h-10 rounded-[16px] border border-transparent bg-accent-soft sm:h-11 sm:rounded-[18px]"
+          animate={reduced ? undefined : { y: [0, 40, 80, 120, 0] }}
           transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
         />
         <motion.div
-          className="pointer-events-none absolute left-4 top-[21px] h-2.5 w-2.5 rounded-full bg-accent"
-          animate={reduced ? undefined : { y: [0, 48, 96, 144, 0] }}
+          className="pointer-events-none absolute left-4 top-[19px] h-2.5 w-2.5 rounded-full bg-accent sm:top-[21px]"
+          animate={reduced ? undefined : { y: [0, 40, 80, 120, 0] }}
           transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
         />
 
         {CHATGPT_TUTORIAL_STEPS.map((step) => (
-          <div key={step.label} className="relative z-10 flex h-12 items-center justify-between rounded-[18px] px-4">
-            <span className="text-sm font-semibold text-text-primary">{step.label}</span>
-            <span className="text-xs text-text-secondary">{step.detail}</span>
+          <div key={step.label} className="relative z-10 flex h-10 items-center justify-between rounded-[16px] px-3 sm:h-12 sm:rounded-[18px] sm:px-4">
+            <span className="text-[13px] font-semibold text-text-primary sm:text-sm">{step.label}</span>
+            <span className="text-[11px] text-text-secondary sm:text-xs">{step.detail}</span>
           </div>
         ))}
       </div>
@@ -105,7 +110,9 @@ export function LandingPage(): ReactElement {
   const navigate = useNavigate();
   const reduced = useReducedMotion();
   const initialDraft = useMemo(() => loadIntakeDraft(), []);
+  const inviteCode = useMemo(() => getInviteCodeFromSearch(window.location.search), []);
   const [summaryText, setSummaryText] = useState(initialDraft?.summaryText ?? '');
+  const [promptCopied, setPromptCopied] = useState(false);
   const [provider, setProvider] = useState<IntakeProvider>(initialDraft?.provider ?? 'chatgpt');
   const [providerLabel, setProviderLabel] = useState(initialDraft?.providerLabel ?? '');
 
@@ -116,18 +123,29 @@ export function LandingPage(): ReactElement {
     reduced
       ? {}
       : {
-          initial: { opacity: 0, y: 20 } as const,
-          animate: { opacity: 1, y: 0 } as const,
-          transition: { type: 'spring' as const, stiffness: 200, damping: 20, delay }
-        };
+        initial: { opacity: 0, y: 20 } as const,
+        animate: { opacity: 1, y: 0 } as const,
+        transition: { type: 'spring' as const, stiffness: 200, damping: 20, delay }
+      };
+
+  useEffect(() => {
+    if (!inviteCode) {
+      return;
+    }
+
+    savePendingInviteCode(inviteCode);
+    void trackInviteClick(inviteCode);
+  }, [inviteCode]);
 
   function handleContinue(): void {
     if (!canContinue) {
       return;
     }
 
+    const redacted = redactSensitiveText(summaryText).text;
+
     saveIntakeDraft({
-      summaryText,
+      summaryText: redacted,
       provider,
       providerLabel: provider === 'other' ? providerLabel : ''
     });
@@ -136,9 +154,9 @@ export function LandingPage(): ReactElement {
 
   return (
     <PageShell blobs="landing">
-      <section className="px-6 pb-16 pt-8 md:pt-10">
+      <section className="px-4 pb-14 pt-6 sm:px-6 sm:pt-8 md:pb-16 lg:px-8 lg:pt-10">
         <div className="mx-auto flex w-full max-w-6xl flex-col gap-10">
-          <motion.div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between" {...fadeUp(0)}>
+          <motion.div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between" {...fadeUp(0)}>
             <div className="flex items-center gap-4">
               <div className="relative h-11 w-11">
                 <div className="absolute inset-0 rounded-[18px] border border-border-default bg-bg-card" />
@@ -153,48 +171,43 @@ export function LandingPage(): ReactElement {
               </div>
 
               <div className="flex flex-col gap-0.5">
-                <span className="font-heading text-[26px] font-bold tracking-tight text-text-primary">Contexted</span>
-                <span className="text-sm text-text-secondary">Words over faces. Memory over polish.</span>
+                <span className="font-heading text-[24px] font-bold tracking-tight text-text-primary sm:text-[26px]">Contexted</span>
+                <span className="text-xs text-text-secondary sm:text-sm">Matching with your AI's memory</span>
               </div>
             </div>
 
-            <span className="self-start rounded-full border border-border-default bg-bg-card px-4 py-2 text-[11px] font-bold tracking-[0.18em] text-text-muted">
-              ALPHA · LIVING MEMORY EXPERIMENT
+            <span className="self-start rounded-full border border-border-default bg-bg-card px-4 py-2 text-[10px] font-bold tracking-[0.18em] text-text-muted sm:text-[11px]">
+              ALPHA
             </span>
           </motion.div>
 
-          <div className="grid gap-12 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.92fr)] lg:items-start">
-            <div className="flex flex-col gap-8">
+          <div className="grid gap-8 md:grid-cols-2 md:items-start md:gap-8 lg:gap-10 xl:grid-cols-[minmax(0,1.06fr)_minmax(0,0.9fr)] xl:gap-12">
+            <div className="flex flex-col gap-6 md:gap-8">
+              {inviteCode ? (
+                <motion.div
+                  className="flex max-w-2xl flex-col gap-2 rounded-[24px] border border-accent/20 bg-accent-soft/70 px-5 py-4 text-left"
+                  {...fadeUp(0.03)}
+                >
+                  <span className="text-[11px] font-bold tracking-[0.18em] text-accent-ink">PRIVATE INVITE</span>
+                  <p className="font-heading text-lg font-semibold text-text-primary">A private invite brought you here.</p>
+                  <p className="text-sm leading-relaxed text-text-secondary">
+                    If this feels like your kind of experiment, keep going. We&rsquo;ll hold the link quietly in the background.
+                  </p>
+                </motion.div>
+              ) : null}
               <motion.div className="flex flex-col gap-5" {...fadeUp(0.06)}>
-                <h1 className="max-w-4xl font-heading text-[clamp(3rem,8vw,6rem)] font-bold leading-[0.92] tracking-[-0.045em] text-text-primary">
-                  Bring the memory your AI keeps about you.
-                  <span className="mt-2 block text-accent-ink">We’ll look for a similar soul.</span>
+                <h1 className="max-w-4xl font-heading text-[clamp(3rem,9vw,5.4rem)] font-bold leading-[0.92] tracking-[-0.045em] text-text-primary xl:text-[clamp(3.6rem,7.6vw,6rem)]">
+                  Bring AI's memory about you
+                  <span className="mt-2 block text-accent-ink">Look for a similar soul</span>
                 </h1>
-
-                <p className="max-w-2xl text-base leading-relaxed text-text-secondary md:text-lg">
-                  Contexted is an alpha test of the social value of AI memory: not your polished profile,
-                  but the living context your assistant accumulates over time. Because that memory keeps
-                  changing, the experiment changes with it.
-                </p>
               </motion.div>
 
-              <motion.div className="flex flex-wrap gap-x-6 gap-y-3 text-sm text-text-secondary" {...fadeUp(0.1)}>
+              <motion.div className="flex flex-wrap gap-x-4 gap-y-3 text-sm text-text-secondary md:gap-x-6" {...fadeUp(0.1)}>
                 <span>Batch-matched, twice a week.</span>
                 <span>Memory changes, so future drops can too.</span>
-                <span>Built for people who think in writing.</span>
-              </motion.div>
-
-              <motion.div
-                className="max-w-2xl border-l border-border-strong pl-5 text-[15px] leading-relaxed text-text-primary"
-                {...fadeUp(0.14)}
-              >
-                This is not a better profile form. It’s a test of whether the memory layer you build with an
-                assistant can reveal kinship with less performance, less vanity, and more signal.
               </motion.div>
 
               <motion.div className="flex flex-col gap-3" {...fadeUp(0.18)}>
-                <span className="text-[12px] font-bold tracking-[0.18em] text-text-muted">THE EXPERIMENT</span>
-
                 <div className="flex flex-col border-t border-border-default">
                   {steps.map((step) => (
                     <div
@@ -210,10 +223,15 @@ export function LandingPage(): ReactElement {
                   ))}
                 </div>
               </motion.div>
+              <p className="max-w-2xl text-base leading-relaxed text-text-secondary md:text-lg">
+                Contexted is an alpha test of the social value of AI memory: not your polished profile,
+                but the living context your assistant accumulates over time. Because that memory keeps
+                changing, the experiment changes with it.
+              </p>
             </div>
 
             <motion.section
-              className="flex flex-col gap-6 rounded-[32px] border border-border-strong p-5 md:p-6 lg:sticky lg:top-8"
+              className="flex flex-col gap-5 rounded-[30px] border border-border-strong p-4 sm:p-5 md:sticky md:top-6 md:gap-6 md:p-6 xl:top-8"
               style={{
                 background: 'linear-gradient(180deg, rgba(255, 249, 243, 0.95) 0%, rgba(255, 249, 243, 0.82) 100%)',
                 boxShadow: '0 32px 80px -52px rgba(38, 24, 20, 0.45)'
@@ -223,47 +241,9 @@ export function LandingPage(): ReactElement {
               <div className="flex flex-col gap-2">
                 <span className="text-[12px] font-bold tracking-[0.18em] text-text-muted">START WITH MEMORY</span>
                 <p className="text-sm leading-relaxed text-text-secondary">
-                  Choose where your AI memory lives, then paste the export or excerpt you want this alpha to test.
+                  Find where your AI memory lives, then paste the export or excerpt you want this alpha to test.
                 </p>
               </div>
-
-              <fieldset className="flex flex-col gap-3">
-                <legend className="text-[12px] font-bold tracking-[0.18em] text-text-muted">WHERE YOUR MEMORY LIVES</legend>
-                <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Memory provider">
-                  {PROVIDERS.map((item) => {
-                    const selected = provider === item.id;
-                    return (
-                      <button
-                        key={item.id}
-                        type="button"
-                        role="radio"
-                        aria-checked={selected}
-                        onClick={() => setProvider(item.id)}
-                        className="min-h-11 rounded-full border border-border-default bg-bg-card px-4 py-2 text-sm font-semibold text-text-primary transition-colors hover:border-accent"
-                        style={selected ? getSelectedProviderStyle(item.id) : undefined}
-                      >
-                        {item.label}
-                      </button>
-                    );
-                  })}
-                </div>
-              </fieldset>
-
-              {provider === 'other' ? (
-                <div className="flex flex-col gap-2">
-                  <label htmlFor="provider-label" className="text-sm font-medium text-text-primary">
-                    Which assistant?
-                  </label>
-                  <input
-                    id="provider-label"
-                    type="text"
-                    value={providerLabel}
-                    onChange={(event) => setProviderLabel(event.target.value)}
-                    placeholder="For example, Gemini"
-                    className="min-h-12 w-full rounded-[18px] border border-border-default bg-bg-card px-4 text-sm text-text-primary placeholder:text-text-muted focus:border-accent focus:outline-none"
-                  />
-                </div>
-              ) : null}
 
               <div className="flex flex-col gap-4 rounded-[28px] border border-border-default bg-bg-card p-4 md:p-5">
                 <div className="flex flex-wrap items-center gap-3">
@@ -271,55 +251,54 @@ export function LandingPage(): ReactElement {
                     STEP 1
                   </span>
                   <p className="font-heading text-lg font-semibold text-text-primary">
-                    {provider === 'claude'
-                      ? 'Visit claude.com/import-memory'
-                      : provider === 'chatgpt'
-                        ? 'Export your ChatGPT memory'
-                        : `Open ${providerLabel.trim() || 'your assistant'} memory`}
+                    Copy and paste the provided prompt into a chat with any AI provider.
                   </p>
                 </div>
 
                 <p className="text-sm leading-relaxed text-text-secondary">
-                  {provider === 'claude'
-                    ? 'Claude has the cleanest path for this alpha: open import-memory, generate the memory view you want to test, then paste the section that feels most true right now.'
-                    : provider === 'chatgpt'
-                      ? 'ChatGPT hides the right control in settings. Use the export path below, then bring the part of your memory that actually sounds like you.'
-                      : 'If your assistant keeps persistent memory, paste the part you would trust to represent your current self — not a cleaned-up bio.'}
+                  Prompt referenced from{' '}
+                  <a
+                    href="https://claude.com/import-memory"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="font-medium text-accent-ink underline decoration-accent/30 underline-offset-2 transition-colors hover:text-accent hover:decoration-accent/60"
+                  >
+                    Anthropic&rsquo;s Claude Import Memory
+                  </a>
                 </p>
 
-                {provider === 'claude' ? (
-                  <>
-                    <div
-                      className="flex items-center gap-3 rounded-[22px] border border-border-default px-4 py-3"
-                      style={{ background: 'color-mix(in srgb, var(--color-bg-card) 68%, var(--color-bg-elevated))' }}
-                    >
-                      <span className="h-2.5 w-2.5 rounded-full bg-positive" aria-hidden />
-                      <span className="text-sm font-medium text-text-primary">https://claude.com/import-memory</span>
-                    </div>
-
-                    <a
-                      href="https://claude.com/import-memory"
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex min-h-12 items-center justify-center rounded-[20px] border border-accent bg-accent px-4 py-3 font-heading text-sm font-semibold text-accent-contrast transition-transform hover:-translate-y-0.5"
-                    >
-                      Open Claude memory import
-                    </a>
-                  </>
-                ) : provider === 'chatgpt' ? (
-                  <ChatGptTutorialPreview reduced={reduced} />
-                ) : (
-                  <div
-                    className="rounded-[22px] border border-border-default px-4 py-4 text-sm leading-relaxed text-text-secondary"
-                    style={{ background: 'color-mix(in srgb, var(--color-bg-card) 68%, var(--color-bg-elevated))' }}
+                <div className="flex items-center justify-between">
+                  <span className="text-[12px] font-bold tracking-[0.18em] text-text-muted">PROMPT</span>
+                  <button
+                    type="button"
+                    className="rounded-full border border-border-default px-3 py-1 text-xs font-medium text-text-secondary transition-colors hover:border-accent hover:text-accent-ink"
+                    onClick={() => {
+                      navigator.clipboard.writeText(MEMORY_EXPORT_PROMPT).then(() => {
+                        setPromptCopied(true);
+                        setTimeout(() => setPromptCopied(false), 2000);
+                      });
+                    }}
                   >
-                    Look for any memory or persistent-context export. The point of Contexted is the memory
-                    your assistant already holds onto — the stuff that keeps changing as you use it.
+                    {promptCopied ? 'Copied!' : 'Copy'}
+                  </button>
+                </div>
+                <div className="relative">
+                  <div
+                    className="max-h-[4.5em] overflow-y-auto rounded-[20px] border border-border-default px-4 py-3"
+                    style={{ background: 'color-mix(in srgb, var(--color-bg-card) 78%, var(--color-bg-elevated))' }}
+                  >
+                    <p className="text-sm leading-relaxed text-text-secondary">
+                      {MEMORY_EXPORT_PROMPT}
+                    </p>
                   </div>
-                )}
+                  <div
+                    className="pointer-events-none absolute inset-x-0 bottom-0 h-6 rounded-b-[20px]"
+                    style={{ background: 'linear-gradient(to top, color-mix(in srgb, var(--color-bg-card) 78%, var(--color-bg-elevated)), transparent)' }}
+                  />
+                </div>
               </div>
 
-              <div className="flex flex-col gap-2">
+              <div className={`flex flex-col gap-2`}>
                 <label htmlFor="memory-text" className="text-[12px] font-bold tracking-[0.18em] text-text-muted">
                   MEMORY FOR MATCHING
                 </label>
@@ -329,7 +308,7 @@ export function LandingPage(): ReactElement {
                 </p>
                 <textarea
                   id="memory-text"
-                  className="min-h-52 w-full rounded-[26px] border border-border-default bg-bg-card px-4 py-4 text-sm leading-relaxed text-text-primary placeholder:text-text-muted focus:border-accent focus:outline-none"
+                  className="min-h-44 w-full rounded-[24px] border border-border-default bg-bg-card px-4 py-4 text-sm leading-relaxed text-text-primary placeholder:text-text-muted focus:border-accent focus:outline-none md:min-h-52 md:rounded-[26px]"
                   placeholder="Paste the memory your AI has built with you — export, excerpt, or import-memory result…"
                   value={summaryText}
                   aria-describedby="memory-help"
@@ -337,7 +316,7 @@ export function LandingPage(): ReactElement {
                 />
               </div>
 
-              <div className="flex flex-col gap-3">
+              <div className={`flex flex-col gap-3`}>
                 <Button type="button" onClick={handleContinue} disabled={!canContinue} className="w-full">
                   Continue to email
                 </Button>

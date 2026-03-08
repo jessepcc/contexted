@@ -240,13 +240,23 @@ export class DeterministicLlmService implements LlmService {
     return `You overthink patterns, value depth, and keep showing up. ${trimmed}`.slice(0, 320);
   }
 
-  async generatePairContent(): Promise<{ synergyPoints: [string, string]; confessionPrompt: string }> {
+  async generatePairContent(input: { profileA: string; profileB: string }): Promise<{ synergyPoints: [string, string]; confessionPrompt: string }> {
+    const excerpt = (text: string): string =>
+      text
+        .split(/[\n.!?]/)
+        .map((part) => part.trim())
+        .find((part) => part.length > 0)
+        ?.slice(0, 96) ?? 'a recurring thread';
+
+    const profileAExcerpt = excerpt(input.profileA);
+    const profileBExcerpt = excerpt(input.profileB);
+
     return {
       synergyPoints: [
-        'You both turn uncertainty into clear action.',
-        'You balance introspection with practical momentum.'
+        `You both keep circling back to ${profileAExcerpt}.`,
+        `There is overlap between "${profileAExcerpt}" and "${profileBExcerpt}".`
       ],
-      confessionPrompt: 'What is one belief you changed recently, and what changed it?'
+      confessionPrompt: `What changed the way you think about "${profileBExcerpt}"?`
     };
   }
 }

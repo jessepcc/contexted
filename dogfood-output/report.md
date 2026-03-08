@@ -3,8 +3,8 @@
 | Field | Value |
 |-------|-------|
 | **Date** | 2026-03-08 |
-| **App URL** | http://127.0.0.1:5173 |
-| **Session** | contexted-local |
+| **App URL** | `http://127.0.0.1:5180` |
+| **Session** | `contexted-local` |
 | **Scope** | Full app UX review with responsiveness focus |
 
 ## Summary
@@ -13,41 +13,87 @@
 |----------|-------|
 | Critical | 0 |
 | High | 0 |
-| Medium | 0 |
+| Medium | 3 |
 | Low | 0 |
-| **Total** | **0** |
+| **Total** | **3** |
 
 ## Issues
 
-<!-- Copy this block for each issue found. Interactive issues need video + step-by-step screenshots. Static issues (typos, visual glitches) only need a single screenshot -- set Repro Video to N/A. -->
-
-### ISSUE-001: {Short title}
+### ISSUE-001: Chat route keeps polling after the conversation has already closed
 
 | Field | Value |
 |-------|-------|
-| **Severity** | critical / high / medium / low |
-| **Category** | visual / functional / ux / content / performance / console / accessibility |
-| **URL** | {page URL where issue was found} |
-| **Repro Video** | {path to video, or N/A for static issues} |
+| **Severity** | medium |
+| **Category** | performance / ux / console |
+| **URL** | `http://127.0.0.1:5180/app/chat` |
+| **Repro Video** | N/A |
 
 **Description**
 
-{What is wrong, what was expected, and what actually happened.}
+When a signed-in user lands directly on `/app/chat` after the match window has expired, the page renders a disabled composer, shows “Chat is unavailable,” and repeatedly hits `/v1/matches/:id/messages`. The result is a visibly broken screen plus a growing console-error stream instead of routing the user into the designed expired/feedback flow.
 
 **Repro Steps**
 
-<!-- Each step has a screenshot. A reader should be able to follow along visually. -->
+1. Set `localStorage.contexted_token = "dev-token"` and open `http://127.0.0.1:5180/app/chat`
+   ![Step 1](screenshots/chat-current-mobile.png)
 
-1. Navigate to http://127.0.0.1:5173
-   ![Step 1](screenshots/issue-001-step-1.png)
+2. Observe that the page still mounts the chat shell even though the conversation is closed
+   ![Step 2](screenshots/chat-current-desktop.png)
 
-2. {Action -- e.g., click "Settings" in the sidebar}
-   ![Step 2](screenshots/issue-001-step-2.png)
-
-3. {Action -- e.g., type "test" in the search field and press Enter}
-   ![Step 3](screenshots/issue-001-step-3.png)
-
-4. **Observe:** {what goes wrong -- e.g., the page shows a blank white screen instead of search results}
-   ![Result](screenshots/issue-001-result.png)
+3. Observe repeated failed `/messages` requests and a dead composer instead of a redirect to the feedback state
+   ![Result](screenshots/chat-current-desktop.png)
 
 ---
+
+### ISSUE-002: The landing page stays stacked too long on mid-sized screens
+
+| Field | Value |
+|-------|-------|
+| **Severity** | medium |
+| **Category** | ux / visual / responsive |
+| **URL** | `http://127.0.0.1:5180/` |
+| **Repro Video** | N/A |
+
+**Description**
+
+Around tablet and small-laptop widths, the editorial introduction and the memory workbench stay in a single long column. The result is a very tall scroll where the input rail feels buried beneath the narrative setup instead of feeling like an adjacent action surface.
+
+**Repro Steps**
+
+1. Open the landing page at roughly `820px` wide
+   ![Step 1](screenshots/landing-current-820.png)
+
+2. Observe that the workbench does not appear alongside the hero content yet
+   ![Result](screenshots/landing-current-820.png)
+
+---
+
+### ISSUE-003: The memory workbench is too tall and instruction-heavy on narrow screens
+
+| Field | Value |
+|-------|-------|
+| **Severity** | medium |
+| **Category** | ux / responsive |
+| **URL** | `http://127.0.0.1:5180/` |
+| **Repro Video** | N/A |
+
+**Description**
+
+On phone-sized layouts, the workbench card spends a lot of vertical space on tutorial chrome before the user reaches the actual memory textarea and CTA. The experience feels slower than it should for a user who already knows what they want to paste.
+
+**Repro Steps**
+
+1. Open the landing page on a mobile viewport
+   ![Step 1](screenshots/landing-current-mobile.png)
+
+2. Scroll into the workbench and observe how much of the card is occupied by the tutorial before the input and CTA
+   ![Result](screenshots/landing-current-mobile.png)
+
+---
+
+## Follow-up Pass
+
+- `Preferences`, `Waiting`, and `Reveal` were re-checked in authenticated mode on March 8, 2026.
+- `Waiting` and `Reveal` did not surface new blocking or high-severity responsiveness bugs in the current seeded state.
+- `Preferences` still felt too phone-first on wide screens, so it was widened into a two-column desktop layout during this pass.
+- The user-reported "chat is using the mobile layout on wide screen" issue mapped to the redirected `/app/expired` experience after `/app/chat` correctly determined the conversation was closed; that desktop layout was widened and split into a proper two-column handoff.

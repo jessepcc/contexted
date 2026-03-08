@@ -95,146 +95,151 @@ export function PreferencesPage(): ReactElement {
       <StepHeader step={2} totalSteps={3} onBack={() => navigate({ to: '/' })} />
 
       <form
-        className="flex flex-col gap-8 px-6 pt-6 pb-10"
+        className="mx-auto w-full max-w-5xl px-4 pb-10 pt-6 sm:px-6 lg:px-8"
         onSubmit={onSubmit}
         aria-describedby={error ? 'preferences-error' : undefined}
       >
-        {/* Title */}
-        <motion.div
-          className="flex flex-col gap-2"
-          {...(reduced ? {} : staggerItem(0))}
-        >
-          <h1 className="font-heading text-[28px] font-bold tracking-tight text-text-primary">
-            A little context around who should feel nearby
-          </h1>
-          <p className="text-sm text-text-secondary leading-relaxed">
-            Just enough to place your memory near the right orbit in the next alpha drop.
-          </p>
-        </motion.div>
+        <div className="flex flex-col gap-8 lg:grid lg:grid-cols-[minmax(0,1.02fr)_minmax(19rem,22rem)] lg:items-start lg:gap-10">
+          <div className="flex flex-col gap-8">
+            <motion.div
+              className="flex flex-col gap-2"
+              {...(reduced ? {} : staggerItem(0))}
+            >
+              <h1 className="font-heading text-[28px] font-bold tracking-tight text-text-primary">
+                A little context around who should feel nearby
+              </h1>
+              <p className="max-w-2xl text-sm leading-relaxed text-text-secondary">
+                Just enough to place your memory near the right orbit in the next alpha drop.
+              </p>
+            </motion.div>
 
-        {/* I Identify As */}
-        <motion.fieldset
-          className="flex flex-col gap-3"
-          {...(reduced ? {} : staggerItem(1))}
-        >
-          <legend className="text-[12px] font-bold tracking-[0.18em] text-text-muted">
-            YOU MOVE THROUGH THE WORLD AS
-          </legend>
-          <div className="flex flex-wrap gap-3" role="radiogroup" aria-label="Gender identity">
-            <RadioPill
-              label="Man"
-              selected={genderIdentity === 'M'}
-              onClick={() => setGenderIdentity('M')}
-              role="radio"
-              aria-checked={genderIdentity === 'M'}
-            />
-            <RadioPill
-              label="Woman"
-              selected={genderIdentity === 'F'}
-              onClick={() => setGenderIdentity('F')}
-              role="radio"
-              aria-checked={genderIdentity === 'F'}
-            />
-            <RadioPill
-              label="Non-binary"
-              selected={genderIdentity === 'NB'}
-              onClick={() => setGenderIdentity('NB')}
-              role="radio"
-              aria-checked={genderIdentity === 'NB'}
-            />
+            <motion.fieldset
+              className="flex flex-col gap-3 rounded-[28px] border border-border-default bg-bg-card p-5 lg:p-6"
+              {...(reduced ? {} : staggerItem(1))}
+            >
+              <legend className="text-[12px] font-bold tracking-[0.18em] text-text-muted">
+                YOU MOVE THROUGH THE WORLD AS
+              </legend>
+              <div className="flex flex-wrap gap-3" role="radiogroup" aria-label="Gender identity">
+                <RadioPill
+                  label="Man"
+                  selected={genderIdentity === 'M'}
+                  onClick={() => setGenderIdentity('M')}
+                  role="radio"
+                  aria-checked={genderIdentity === 'M'}
+                />
+                <RadioPill
+                  label="Woman"
+                  selected={genderIdentity === 'F'}
+                  onClick={() => setGenderIdentity('F')}
+                  role="radio"
+                  aria-checked={genderIdentity === 'F'}
+                />
+                <RadioPill
+                  label="Non-binary"
+                  selected={genderIdentity === 'NB'}
+                  onClick={() => setGenderIdentity('NB')}
+                  role="radio"
+                  aria-checked={genderIdentity === 'NB'}
+                />
+              </div>
+            </motion.fieldset>
+
+            <motion.fieldset
+              className="flex flex-col gap-3 rounded-[28px] border border-border-default bg-bg-card p-5 lg:p-6"
+              {...(reduced ? {} : staggerItem(2))}
+            >
+              <legend className="text-[12px] font-bold tracking-[0.18em] text-text-muted">
+                ASK US TO LOOK TOWARD
+              </legend>
+              <div className="flex flex-wrap gap-3" role="group" aria-label="Interested in">
+                <RadioPill
+                  label="Men"
+                  selected={attractedTo.has('M')}
+                  onClick={() => toggleAttracted('M')}
+                  aria-pressed={attractedTo.has('M')}
+                />
+                <RadioPill
+                  label="Women"
+                  selected={attractedTo.has('F')}
+                  onClick={() => toggleAttracted('F')}
+                  aria-pressed={attractedTo.has('F')}
+                />
+                <RadioPill
+                  label="Non-binary"
+                  selected={attractedTo.has('NB')}
+                  onClick={() => toggleAttracted('NB')}
+                  aria-pressed={attractedTo.has('NB')}
+                />
+                <RadioPill
+                  label="Everyone"
+                  selected={allGenders}
+                  onClick={() => setAttractedTo(new Set(['M', 'F', 'NB']))}
+                  aria-pressed={allGenders}
+                />
+              </div>
+            </motion.fieldset>
           </div>
-        </motion.fieldset>
 
-        {/* Interested In */}
-        <motion.fieldset
-          className="flex flex-col gap-3"
-          {...(reduced ? {} : staggerItem(2))}
-        >
-          <legend className="text-[12px] font-bold tracking-[0.18em] text-text-muted">
-            ASK US TO LOOK TOWARD
-          </legend>
-          <div className="flex flex-wrap gap-3" role="group" aria-label="Interested in">
-            <RadioPill
-              label="Men"
-              selected={attractedTo.has('M')}
-              onClick={() => toggleAttracted('M')}
-              aria-pressed={attractedTo.has('M')}
-            />
-            <RadioPill
-              label="Women"
-              selected={attractedTo.has('F')}
-              onClick={() => toggleAttracted('F')}
-              aria-pressed={attractedTo.has('F')}
-            />
-            <RadioPill
-              label="Non-binary"
-              selected={attractedTo.has('NB')}
-              onClick={() => toggleAttracted('NB')}
-              aria-pressed={attractedTo.has('NB')}
-            />
-            <RadioPill
-              label="Everyone"
-              selected={allGenders}
-              onClick={() => setAttractedTo(new Set(['M', 'F', 'NB']))}
-              aria-pressed={allGenders}
-            />
+          <div className="flex flex-col gap-6 lg:sticky lg:top-8">
+            <motion.fieldset
+              className="flex flex-col gap-3 rounded-[28px] border border-border-default bg-bg-card p-5 lg:p-6"
+              {...(reduced ? {} : staggerItem(3))}
+            >
+              <legend className="text-[12px] font-bold tracking-[0.18em] text-text-muted">
+                AGE WINDOW
+              </legend>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] sm:items-end">
+                <label className="flex flex-col gap-2 text-sm font-medium text-text-primary" htmlFor="age-min">
+                  Minimum age
+                  <input
+                    id="age-min"
+                    type="number"
+                    min={18}
+                    max={99}
+                    value={ageMin}
+                    aria-invalid={ageRangeInvalid}
+                    aria-describedby={error ? 'preferences-error' : undefined}
+                    onChange={(e) => setAgeMin(Number.parseInt(e.target.value, 10) || 18)}
+                    className="min-h-12 w-full rounded-lg border border-border-default bg-bg-card px-4 text-center font-heading text-lg font-bold text-text-primary focus:border-accent focus:outline-none"
+                  />
+                </label>
+                <span className="hidden pb-3 text-sm text-text-muted sm:block">to</span>
+                <label className="flex flex-col gap-2 text-sm font-medium text-text-primary" htmlFor="age-max">
+                  Maximum age
+                  <input
+                    id="age-max"
+                    type="number"
+                    min={18}
+                    max={99}
+                    value={ageMax}
+                    aria-invalid={ageRangeInvalid}
+                    aria-describedby={error ? 'preferences-error' : undefined}
+                    onChange={(e) => setAgeMax(Number.parseInt(e.target.value, 10) || 40)}
+                    className="min-h-12 w-full rounded-lg border border-border-default bg-bg-card px-4 text-center font-heading text-lg font-bold text-text-primary focus:border-accent focus:outline-none"
+                  />
+                </label>
+              </div>
+            </motion.fieldset>
+
+            <motion.div
+              className="flex flex-col gap-3 rounded-[28px] border border-border-default bg-bg-card p-5 lg:p-6"
+              {...(reduced ? {} : staggerItem(4))}
+            >
+              <p className="text-sm leading-relaxed text-text-secondary">
+                This last bit keeps the matching pool warm and directional without turning it into profile theater.
+              </p>
+              <Button type="submit" disabled={busy} className="w-full">
+                {busy ? 'Saving...' : 'Join the next drop'}
+              </Button>
+              {error ? (
+                <p id="preferences-error" role="alert" className="text-sm text-negative">
+                  {error}
+                </p>
+              ) : null}
+            </motion.div>
           </div>
-        </motion.fieldset>
-
-        {/* Age Range */}
-        <motion.fieldset
-          className="flex flex-col gap-3"
-          {...(reduced ? {} : staggerItem(3))}
-        >
-          <legend className="text-[12px] font-bold tracking-[0.18em] text-text-muted">
-            AGE WINDOW
-          </legend>
-          <div className="grid max-w-sm grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] sm:items-end">
-            <label className="flex flex-col gap-2 text-sm font-medium text-text-primary" htmlFor="age-min">
-              Minimum age
-              <input
-                id="age-min"
-                type="number"
-                min={18}
-                max={99}
-                value={ageMin}
-                aria-invalid={ageRangeInvalid}
-                aria-describedby={error ? 'preferences-error' : undefined}
-                onChange={(e) => setAgeMin(Number.parseInt(e.target.value, 10) || 18)}
-                className="min-h-12 w-full rounded-lg border border-border-default bg-bg-card px-4 text-center font-heading text-lg font-bold text-text-primary focus:border-accent focus:outline-none"
-              />
-            </label>
-            <span className="hidden pb-3 text-sm text-text-muted sm:block">to</span>
-            <label className="flex flex-col gap-2 text-sm font-medium text-text-primary" htmlFor="age-max">
-              Maximum age
-              <input
-                id="age-max"
-                type="number"
-                min={18}
-                max={99}
-                value={ageMax}
-                aria-invalid={ageRangeInvalid}
-                aria-describedby={error ? 'preferences-error' : undefined}
-                onChange={(e) => setAgeMax(Number.parseInt(e.target.value, 10) || 40)}
-                className="min-h-12 w-full rounded-lg border border-border-default bg-bg-card px-4 text-center font-heading text-lg font-bold text-text-primary focus:border-accent focus:outline-none"
-              />
-            </label>
-          </div>
-        </motion.fieldset>
-
-        {/* Submit */}
-        <motion.div {...(reduced ? {} : staggerItem(4))}>
-          <Button type="submit" disabled={busy} className="w-full">
-            {busy ? 'Saving...' : 'Join the next drop'}
-          </Button>
-        </motion.div>
-
-        {/* Error */}
-        {error ? (
-          <p id="preferences-error" role="alert" className="text-center text-sm text-negative">
-            {error}
-          </p>
-        ) : null}
+        </div>
       </form>
     </PageShell>
   );

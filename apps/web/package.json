@@ -4,13 +4,13 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
+    "dev": "npm run build --prefix ../../packages/shared && vite",
+    "build": "npm run build --prefix ../../packages/shared && vite build",
     "preview": "vite preview",
-    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "typecheck": "npm run build --prefix ../../packages/shared && tsc -p tsconfig.json --noEmit",
     "lint": "echo 'lint: web (no-op)'",
-    "test": "vitest run",
-    "test:coverage": "vitest run --coverage"
+    "test": "npm run build --prefix ../../packages/shared && vitest run",
+    "test:coverage": "npm run build --prefix ../../packages/shared && vitest run --coverage"
   },
   "dependencies": {
     "@contexted/shared": "0.1.0",
