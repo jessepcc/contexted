@@ -1,20 +1,21 @@
-import { createRootRoute, createRoute, createRouter, redirect, Outlet } from '@tanstack/react-router';
+import { createRootRoute, createRoute, createRouter, redirect, Outlet, lazyRouteComponent } from '@tanstack/react-router';
 import { createElement, useState } from 'react';
 import { AppContext } from './AppContext.js';
 import type { AppState } from './AppContext.js';
 import { RootLayout } from './components/RootLayout.js';
-import { LandingPage } from './pages/LandingPage.js';
-import { LoginPage } from './pages/LoginPage.js';
-import { VerifyPage } from './pages/VerifyPage.js';
-import { AppGatewayPage } from './pages/AppGatewayPage.js';
-import { UploadPage } from './pages/UploadPage.js';
-import { ProcessingPage } from './pages/ProcessingPage.js';
-import { PreferencesPage } from './pages/PreferencesPage.js';
-import { WaitingPage } from './pages/WaitingPage.js';
-import { RevealPage } from './pages/RevealPage.js';
-import { ChatPage } from './pages/ChatPage.js';
-import { ExpiredPage } from './pages/ExpiredPage.js';
-import { ErrorPage } from './pages/ErrorPage.js';
+
+const LandingPage = lazyRouteComponent(() => import('./pages/LandingPage.js'), 'LandingPage');
+const LoginPage = lazyRouteComponent(() => import('./pages/LoginPage.js'), 'LoginPage');
+const VerifyPage = lazyRouteComponent(() => import('./pages/VerifyPage.js'), 'VerifyPage');
+const AppGatewayPage = lazyRouteComponent(() => import('./pages/AppGatewayPage.js'), 'AppGatewayPage');
+const UploadPage = lazyRouteComponent(() => import('./pages/UploadPage.js'), 'UploadPage');
+const ProcessingPage = lazyRouteComponent(() => import('./pages/ProcessingPage.js'), 'ProcessingPage');
+const PreferencesPage = lazyRouteComponent(() => import('./pages/PreferencesPage.js'), 'PreferencesPage');
+const WaitingPage = lazyRouteComponent(() => import('./pages/WaitingPage.js'), 'WaitingPage');
+const RevealPage = lazyRouteComponent(() => import('./pages/RevealPage.js'), 'RevealPage');
+const ChatPage = lazyRouteComponent(() => import('./pages/ChatPage.js'), 'ChatPage');
+const ExpiredPage = lazyRouteComponent(() => import('./pages/ExpiredPage.js'), 'ExpiredPage');
+const ErrorPage = lazyRouteComponent(() => import('./pages/ErrorPage.js'), 'ErrorPage');
 
 function AppLayout() {
   const [appState, setAppState] = useState<AppState | null>(null);

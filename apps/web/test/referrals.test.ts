@@ -93,7 +93,7 @@ describe('referrals helpers', () => {
   });
 
   it.each([404, 422])(
-    'quietly ignores non-retriable claim failure %s and clears the pending invite',
+    'stores a calm flash for non-retriable claim failure %s and clears the pending invite',
     async (status) => {
       savePendingInviteCode('quiet-link');
       localStorage.setItem('contexted_token', 'token-123');
@@ -108,7 +108,7 @@ describe('referrals helpers', () => {
 
       await expect(claimPendingInvite()).resolves.toBe('ignored');
       expect(localStorage.getItem('contexted_pending_invite_code')).toBeNull();
-      expect(consumeReferralFlash()).toBeNull();
+      expect(consumeReferralFlash()).toContain('couldn’t be attached');
     }
   );
 

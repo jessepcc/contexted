@@ -191,7 +191,7 @@ export function LandingPage(): ReactElement {
                   <span className="text-[11px] font-bold tracking-[0.18em] text-accent-ink">PRIVATE INVITE</span>
                   <p className="font-heading text-lg font-semibold text-text-primary">A private invite brought you here.</p>
                   <p className="text-sm leading-relaxed text-text-secondary">
-                    If this feels like your kind of experiment, keep going. We&rsquo;ll hold the link quietly in the background.
+                    If this feels like your kind of experiment, keep going. We&rsquo;ll carry the link quietly through sign-in.
                   </p>
                 </motion.div>
               ) : null}
@@ -271,7 +271,7 @@ export function LandingPage(): ReactElement {
                   <span className="text-[12px] font-bold tracking-[0.18em] text-text-muted">PROMPT</span>
                   <button
                     type="button"
-                    className="rounded-full border border-border-default px-3 py-1 text-xs font-medium text-text-secondary transition-colors hover:border-accent hover:text-accent-ink"
+                    className="inline-flex min-h-11 items-center justify-center rounded-full border border-border-default px-4 py-1.5 text-xs font-medium text-text-secondary transition-colors hover:border-accent hover:text-accent-ink"
                     onClick={() => {
                       navigator.clipboard.writeText(MEMORY_EXPORT_PROMPT).then(() => {
                         setPromptCopied(true);

@@ -136,6 +136,7 @@ export async function claimPendingInvite(): Promise<'none' | 'claimed' | 'ignore
     return response.claimed ? 'claimed' : 'ignored';
   } catch (error) {
     if (error instanceof HttpError && [400, 404, 409, 422].includes(error.status)) {
+      setReferralFlash('That private invite couldn’t be attached, but your place in line stays intact.');
       clearPendingInviteCode();
       return 'ignored';
     }

@@ -76,7 +76,9 @@ export function LoginPage(): ReactElement {
             We use a magic link so your memory stays attached to you, not to another password.
           </p>
           {hasPendingInvite ? (
-            <p className="mt-2 text-sm text-text-muted">If you came through an invite, we&rsquo;ll keep it attached.</p>
+            <p className="mt-2 text-sm text-text-secondary">
+              If you came through a private invite, we&rsquo;ll carry it quietly through sign-in.
+            </p>
           ) : null}
         </div>
 
@@ -107,13 +109,17 @@ export function LoginPage(): ReactElement {
             </p>
           )}
 
-          <Button type="submit" disabled={submitting} className="w-full">
+          <Button type="submit" disabled={submitting} className="w-full" aria-busy={submitting}>
             {submitting ? (
-              <motion.span
-                className="inline-block h-5 w-5 rounded-full bg-accent-contrast"
-                animate={reduced ? {} : { scale: [1, 0.8, 1] }}
-                transition={{ repeat: Infinity, duration: 0.8 }}
-              />
+              <>
+                <span className="sr-only">Sending your magic link</span>
+                <motion.span
+                  aria-hidden="true"
+                  className="inline-block h-5 w-5 rounded-full bg-accent-contrast"
+                  animate={reduced ? {} : { scale: [1, 0.8, 1] }}
+                  transition={{ repeat: Infinity, duration: 0.8 }}
+                />
+              </>
             ) : (
               'Send me the link'
             )}

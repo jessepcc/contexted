@@ -13,6 +13,8 @@
   --color-accent-ink: #8E472E;
   --color-accent-contrast: #261814;
   --color-accent-soft: rgba(212, 113, 78, 0.08);
+  --color-focus-ring: #8E472E;
+  --color-focus-ring-offset: rgba(255, 249, 243, 0.96);
 
   --color-chatgpt: #10A37F;
   --color-chatgpt-contrast: #072A22;
@@ -57,7 +59,9 @@ body {
 /* Focus state — warm accent glow */
 :focus-visible {
   outline: none;
-  box-shadow: 0 0 0 3px rgba(212, 113, 78, 0.3);
+  box-shadow:
+    0 0 0 2px var(--color-focus-ring-offset),
+    0 0 0 4px var(--color-focus-ring);
 }
 
 /* --- Keyframes --- */

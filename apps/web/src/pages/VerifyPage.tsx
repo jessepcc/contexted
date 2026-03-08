@@ -43,7 +43,7 @@ export function VerifyPage(): ReactElement {
           </p>
           <a
             href="/auth/login"
-            className="mt-6 font-heading text-sm font-semibold text-accent hover:underline"
+            className="mt-6 inline-flex min-h-11 items-center justify-center rounded-full px-4 font-heading text-sm font-semibold text-accent transition-colors hover:text-accent-ink hover:underline"
           >
             Request a new link
           </a>

@@ -1,4 +1,5 @@
 import type { ReactElement } from 'react';
+import { useReducedMotion } from '../hooks/useDelight.js';
 
 interface Blob {
   color: string;
@@ -47,12 +48,15 @@ const presets: Record<string, Blob[]> = {
 
 export function BlurBlobs({ variant }: { variant: keyof typeof presets }): ReactElement {
   const blobs = presets[variant] ?? presets.landing;
+  const reduced = useReducedMotion();
+  const shouldAnimate = !reduced && variant !== 'landing';
+
   return (
     <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
       {blobs.map((b, i) => (
         <div
           key={i}
-          className="absolute rounded-full animate-blob-drift"
+          className="absolute rounded-full"
           style={{
             background: b.color,
             width: b.width,
@@ -60,7 +64,10 @@ export function BlurBlobs({ variant }: { variant: keyof typeof presets }): React
             left: b.left,
             top: b.top,
             filter: `blur(${b.blur}px)`,
-            animation: `blob-drift 25s ease-in-out infinite ${i * 3}s, blob-breathe 8s ease-in-out infinite ${i * 2}s`,
+            willChange: shouldAnimate ? 'transform' : undefined,
+            animation: shouldAnimate
+              ? `blob-drift 25s ease-in-out infinite ${i * 3}s, blob-breathe 8s ease-in-out infinite ${i * 2}s`
+              : undefined,
           }}
         />
       ))}

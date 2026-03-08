@@ -14,7 +14,7 @@ import type { BootstrapResponse, ReferralOverviewResponse } from '../types.js';
 import { getWaitingRoomContent } from '../waitingRoom.js';
 
 const STATUS_TONE_CLASS = {
-  neutral: 'bg-bg-elevated text-text-secondary',
+  neutral: 'bg-bg-elevated text-text-primary',
   accent: 'bg-accent-soft text-accent-ink',
   positive: 'bg-positive-soft text-positive-ink',
   negative: 'bg-negative-soft text-negative'

@@ -5,7 +5,7 @@ import { apiRequest } from '../api.js';
 import { AppContext } from '../AppContext.js';
 import { PageShell } from '../components/PageShell.js';
 import { clearActiveJobId, loadIntakeDraft, getActiveJobId } from '../intakeDraft.js';
-import { claimPendingInvite } from '../referrals.js';
+import { claimPendingInvite, setReferralFlash } from '../referrals.js';
 import type { BootstrapResponse } from '../types.js';
 
 export function AppGatewayPage(): ReactElement {
@@ -33,6 +33,7 @@ export function AppGatewayPage(): ReactElement {
           await claimPendingInvite();
         } catch (claimError) {
           console.warn('Referral claim failed', claimError);
+          setReferralFlash('We couldn’t confirm that private invite yet. We’ll keep trying quietly from here.');
         }
 
         const intakeDraft = loadIntakeDraft();
@@ -89,7 +90,13 @@ export function AppGatewayPage(): ReactElement {
             <p className="max-w-md text-sm leading-relaxed text-text-secondary">
               We&rsquo;re checking whether your memory is still processing, waiting for the next drop, or ready to open.
             </p>
-            <div className="h-8 w-8 rounded-full border-4 border-accent border-t-transparent animate-spin" />
+            <p className="max-w-md text-xs font-medium tracking-[0.02em] text-text-secondary/90" role="status" aria-live="polite">
+              If a private invite came with you, we&rsquo;re attaching it before we place you.
+            </p>
+            <div
+              className="h-8 w-8 rounded-full border-4 border-accent border-t-transparent animate-spin"
+              aria-hidden="true"
+            />
           </>
         )}
       </div>
