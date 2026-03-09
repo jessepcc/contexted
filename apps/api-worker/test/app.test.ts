@@ -488,7 +488,7 @@ describe('api worker', () => {
     const setup = await buildTestApp();
     const matchId = crypto.randomUUID();
     const token = 'reveal-token';
-    const tokenHash = hashRevealToken(token);
+    const tokenHash = await hashRevealToken(token);
     const artifactPath = 'reveal/match.json';
 
     setup.storage.seedArtifact(artifactPath, { synergy_points: ['A', 'B'] });
@@ -505,7 +505,7 @@ describe('api worker', () => {
     expect(ok.status).toBe(200);
 
     await setup.repository.upsertRevealToken({
-      tokenHash: hashRevealToken('expired-token'),
+      tokenHash: await hashRevealToken('expired-token'),
       matchId,
       userId: setup.user.id,
       artifactPath,

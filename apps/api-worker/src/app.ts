@@ -13,7 +13,7 @@ import {
 } from '@contexted/shared';
 import { Hono } from 'hono';
 import type { Context } from 'hono';
-import { timingSafeEqual } from 'node:crypto';
+import { cors } from 'hono/cors';
 import type { AppDependencies } from './dependencies.js';
 import { InMemoryRepository } from './in-memory-repository.js';
 import type { IngestionStatus, MatchRecord } from './model.js';
@@ -73,14 +73,18 @@ function hasInternalAdminAccess(c: Context, deps: AppDependencies): boolean {
   const expected = deps.config.internalAdminToken?.trim();
   const provided = c.req.header('X-Internal-Admin-Token')?.trim();
 
-  if (!expected || !provided) {
+  if (!expected || !provided || expected.length !== provided.length) {
     return false;
   }
 
-  const expectedBuffer = Buffer.from(expected);
-  const providedBuffer = Buffer.from(provided);
-
-  return expectedBuffer.length === providedBuffer.length && timingSafeEqual(expectedBuffer, providedBuffer);
+  const encoder = new TextEncoder();
+  const a = encoder.encode(expected);
+  const b = encoder.encode(provided);
+  let result = 0;
+  for (let i = 0; i < a.length; i++) {
+    result |= a[i] ^ b[i];
+  }
+  return result === 0;
 }
 
 function randomInviteCode(): string {
@@ -173,6 +177,20 @@ async function maybeRewardReferral(
 
 export function createApp(deps: AppDependencies): Hono<AppEnv> {
   const app = new Hono<AppEnv>();
+
+  const allowedOrigins = deps.config.appPublicOrigin
+    ? [deps.config.appPublicOrigin]
+    : ['http://localhost:5173', 'http://127.0.0.1:5173'];
+
+  app.use('*', cors({
+    origin: allowedOrigins,
+    allowHeaders: ['Content-Type', 'Authorization', 'Idempotency-Key', 'If-None-Match', 'X-Internal-Admin-Token', 'X-App-Background'],
+    allowMethods: ['GET', 'POST', 'PUT', 'OPTIONS'],
+    exposeHeaders: ['ETag'],
+    maxAge: 86400,
+    credentials: true,
+  }));
+
   const requireAuth = createAuthMiddleware(deps);
 
   app.get('/health', (c) => c.json({ ok: true }));
@@ -241,7 +259,7 @@ export function createApp(deps: AppDependencies): Hono<AppEnv> {
       const inviteCode = await ensureInviteCode(deps, viewer.id, nowIso);
       const landedReferrals = await deps.repository.countQualifiedReferralsByInviterUserId(viewer.id);
       const availablePriorityCredits = await deps.repository.countAvailablePriorityCredits(viewer.id);
-      const origin = new URL(c.req.url).origin;
+      const origin = deps.config.appPublicOrigin ?? new URL(c.req.url).origin;
 
       return c.json({
         invite_url: `${origin}/?invite=${inviteCode}`,
@@ -756,7 +774,7 @@ export function createApp(deps: AppDependencies): Hono<AppEnv> {
   app.get(
     '/r/:token',
     withAppErrors(async (c: Context) => {
-      const tokenHash = hashRevealToken(c.req.param('token'));
+      const tokenHash = await hashRevealToken(c.req.param('token'));
       const revealToken = await deps.repository.getRevealTokenByHash(tokenHash);
       if (!revealToken) {
         return c.json({ code: 'STATE_CONFLICT', field: 'token', message: 'Reveal token not found.' }, 404);

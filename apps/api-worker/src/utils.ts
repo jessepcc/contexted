@@ -1,8 +1,9 @@
-import { createHash } from 'node:crypto';
 import type { MatchRecord } from './model.js';
 
-export function hashRevealToken(token: string): string {
-  return createHash('sha256').update(token).digest('hex');
+export async function hashRevealToken(token: string): Promise<string> {
+  const data = new TextEncoder().encode(token);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  return [...new Uint8Array(hashBuffer)].map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
 export function getPollAfterMs(isBackground: boolean, foregroundSec: number, backgroundSec: number): number {

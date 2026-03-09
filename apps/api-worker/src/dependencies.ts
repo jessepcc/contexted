@@ -144,6 +144,7 @@ export type AppConfig = {
   matchTopK: number;
   internalAdminToken?: string;
   embeddingModel: string;
+  appPublicOrigin?: string;
 };
 
 export type AppDependencies = {

@@ -15,13 +15,15 @@ export class HttpError extends Error {
   }
 }
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL ?? '';
+
 function authHeader(): HeadersInit {
   const token = localStorage.getItem('contexted_token');
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
 export async function apiRequestRaw(path: string, init?: RequestInit): Promise<Response> {
-  const response = await fetch(path, {
+  const response = await fetch(`${API_BASE}${path}`, {
     ...init,
     headers: {
       'Content-Type': 'application/json',
@@ -41,7 +43,7 @@ export async function apiRequestRaw(path: string, init?: RequestInit): Promise<R
 }
 
 export async function apiRequest<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(path, {
+  const response = await fetch(`${API_BASE}${path}`, {
     ...init,
     headers: {
       'Content-Type': 'application/json',
