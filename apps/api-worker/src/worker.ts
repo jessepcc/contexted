@@ -5,8 +5,7 @@ import { loadConfig } from './config.js';
 import { PostgresRepository } from './postgres-repository.js';
 import {
   createSupabaseAuthFromEnv,
-  createSupabaseStorageFromEnv,
-  HttpQueueService
+  createSupabaseStorageFromEnv
 } from './adapters.js';
 import {
   AnthropicLlmService,
@@ -14,34 +13,17 @@ import {
   OpenAiEmbeddingService,
   OpenAiLlmService
 } from './ai-providers.js';
-import type { AppDependencies } from './dependencies.js';
+import type { AppDependencies, QueueService } from './dependencies.js';
+import { processIngestionJob } from './services/ingestion-service.js';
 
-/**
- * Cloudflare Worker environment bindings.
- *
- * Secrets (set via `wrangler secret put`):
- *   SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY,
- *   OPENAI_API_KEY, ANTHROPIC_API_KEY,
- *   QUEUE_DISPATCH_URL, QUEUE_DISPATCH_TOKEN, INTERNAL_ADMIN_TOKEN
- *
- * Vars (set in wrangler.jsonc or dashboard):
- *   APP_MODE, APP_PUBLIC_ORIGIN, SUPABASE_STORAGE_BUCKET,
- *   LLM_PRIMARY, OPENAI_LLM_MODEL, ANTHROPIC_LLM_MODEL,
- *   EMBEDDING_MODEL, MAX_UPLOAD_MB, SIGNED_UPLOAD_TTL_SEC,
- *   RAW_HARD_TTL_MINUTES, CHAT_POLL_FOREGROUND_SEC,
- *   CHAT_POLL_BACKGROUND_SEC, PROCESSING_POLL_MS
- */
 export interface Env {
-  // Hyperdrive binding for Postgres
   HYPERDRIVE: Hyperdrive;
 
-  // Supabase
   SUPABASE_URL: string;
   SUPABASE_ANON_KEY: string;
   SUPABASE_SERVICE_ROLE_KEY: string;
   SUPABASE_STORAGE_BUCKET?: string;
 
-  // AI providers
   OPENAI_API_KEY: string;
   OPENAI_BASE_URL?: string;
   ANTHROPIC_API_KEY?: string;
@@ -51,11 +33,6 @@ export interface Env {
   EMBEDDING_BASE_URL?: string;
   LLM_PRIMARY?: string;
 
-  // Queue
-  QUEUE_DISPATCH_URL?: string;
-  QUEUE_DISPATCH_TOKEN?: string;
-
-  // App config
   APP_MODE?: string;
   APP_PUBLIC_ORIGIN?: string;
   INTERNAL_ADMIN_TOKEN?: string;
@@ -67,15 +44,33 @@ export interface Env {
   PROCESSING_POLL_MS?: string;
 }
 
-function buildDependencies(env: Env): AppDependencies {
-  // Flatten env bindings into a plain Record for helpers that expect it
+class WaitUntilQueueService implements QueueService {
+  private ctx: ExecutionContext;
+  private deps: () => AppDependencies;
+
+  constructor(ctx: ExecutionContext, deps: () => AppDependencies) {
+    this.ctx = ctx;
+    this.deps = deps;
+  }
+
+  async enqueue(topic: 'ingest' | 'drop', payload: Record<string, string>): Promise<void> {
+    if (topic === 'ingest') {
+      this.ctx.waitUntil(
+        processIngestionJob(this.deps(), {
+          jobId: payload.jobId,
+          sourceText: payload.sourceText ?? ''
+        }).catch((err) => console.error(`[worker] ingestion failed job=${payload.jobId}:`, err))
+      );
+    }
+  }
+}
+
+function buildDependencies(env: Env, ctx: ExecutionContext): AppDependencies {
   const envRecord: Record<string, string | undefined> = {
     SUPABASE_URL: env.SUPABASE_URL,
     SUPABASE_ANON_KEY: env.SUPABASE_ANON_KEY,
     SUPABASE_SERVICE_ROLE_KEY: env.SUPABASE_SERVICE_ROLE_KEY,
     SUPABASE_STORAGE_BUCKET: env.SUPABASE_STORAGE_BUCKET,
-    QUEUE_DISPATCH_URL: env.QUEUE_DISPATCH_URL,
-    QUEUE_DISPATCH_TOKEN: env.QUEUE_DISPATCH_TOKEN,
     APP_MODE: env.APP_MODE,
     APP_PUBLIC_ORIGIN: env.APP_PUBLIC_ORIGIN,
     INTERNAL_ADMIN_TOKEN: env.INTERNAL_ADMIN_TOKEN,
@@ -93,11 +88,9 @@ function buildDependencies(env: Env): AppDependencies {
     ANTHROPIC_LLM_MODEL: env.ANTHROPIC_LLM_MODEL
   };
 
-  // Postgres via Hyperdrive
   const databaseUrl = env.HYPERDRIVE.connectionString;
   const repository = new PostgresRepository(databaseUrl);
 
-  // AI services
   const openAiKey = env.OPENAI_API_KEY;
   const anthropicKey = env.ANTHROPIC_API_KEY;
   const openAiModel = env.OPENAI_LLM_MODEL ?? 'gpt-4o-mini';
@@ -116,25 +109,28 @@ function buildDependencies(env: Env): AppDependencies {
   const primary = preferred === 'anthropic' ? (anthropic ?? openAi) : openAi;
   const secondary = preferred === 'anthropic' ? openAi : anthropic;
 
-  return {
+  // Lazy self-reference so the queue service can access deps
+  let deps: AppDependencies;
+  const queueService = new WaitUntilQueueService(ctx, () => deps);
+
+  deps = {
     config: loadConfig(envRecord),
     repository,
     authService: createSupabaseAuthFromEnv(envRecord),
     storageService: createSupabaseStorageFromEnv(envRecord),
-    queueService: new HttpQueueService({
-      dispatchUrl: env.QUEUE_DISPATCH_URL ?? '',
-      dispatchToken: env.QUEUE_DISPATCH_TOKEN ?? ''
-    }),
+    queueService,
     llmService: new FallbackLlmService({ primary, secondary }),
     embeddingService: new OpenAiEmbeddingService({ apiKey: openAiKey, model: embeddingModel, baseUrl: embeddingBaseUrl }),
     clock: () => new Date()
   };
+
+  return deps;
 }
 
 export default {
-  async fetch(request: Request, env: Env, _ctx: ExecutionContext): Promise<Response> {
-    const deps = buildDependencies(env);
+  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+    const deps = buildDependencies(env, ctx);
     const app = createApp(deps);
-    return app.fetch(request, env, _ctx);
+    return app.fetch(request, env, ctx);
   }
 };
