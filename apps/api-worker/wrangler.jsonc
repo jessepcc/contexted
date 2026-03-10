@@ -23,6 +23,15 @@
     },
     "production": {
       "name": "contexted-api",
+      "routes": [
+        { "pattern": "api.contexted.app/*", "zone_name": "contexted.app" }
+      ],
+      "hyperdrive": [
+        {
+          "binding": "HYPERDRIVE",
+          "id": "97313f1523b540de947c0cb59b8b0b97"
+        }
+      ],
       "vars": {
         "APP_MODE": "postgres",
         "APP_PUBLIC_ORIGIN": "https://contexted.app",
