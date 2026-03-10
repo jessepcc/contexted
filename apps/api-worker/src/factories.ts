@@ -40,7 +40,8 @@ function createAiDependenciesFromEnv(env: Record<string, string | undefined>): {
 
   const openAi = new OpenAiLlmService({
     apiKey: openAiKey,
-    model: openAiModel
+    model: openAiModel,
+    baseUrl: env.OPENAI_BASE_URL
   });
   const anthropic = anthropicKey
     ? new AnthropicLlmService({
@@ -59,7 +60,8 @@ function createAiDependenciesFromEnv(env: Record<string, string | undefined>): {
     }),
     embeddingService: new OpenAiEmbeddingService({
       apiKey: openAiKey,
-      model: embeddingModel
+      model: embeddingModel,
+      baseUrl: env.EMBEDDING_BASE_URL
     })
   };
 }

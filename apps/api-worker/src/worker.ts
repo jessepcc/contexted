@@ -6,7 +6,7 @@ import { PostgresRepository } from './postgres-repository.js';
 import {
   createSupabaseAuthFromEnv,
   createSupabaseStorageFromEnv,
-  createQueueServiceFromEnv
+  HttpQueueService
 } from './adapters.js';
 import {
   AnthropicLlmService,
@@ -43,15 +43,17 @@ export interface Env {
 
   // AI providers
   OPENAI_API_KEY: string;
+  OPENAI_BASE_URL?: string;
   ANTHROPIC_API_KEY?: string;
   OPENAI_LLM_MODEL?: string;
   ANTHROPIC_LLM_MODEL?: string;
   EMBEDDING_MODEL?: string;
+  EMBEDDING_BASE_URL?: string;
   LLM_PRIMARY?: string;
 
   // Queue
-  QUEUE_DISPATCH_URL: string;
-  QUEUE_DISPATCH_TOKEN: string;
+  QUEUE_DISPATCH_URL?: string;
+  QUEUE_DISPATCH_TOKEN?: string;
 
   // App config
   APP_MODE?: string;
@@ -103,7 +105,10 @@ function buildDependencies(env: Env): AppDependencies {
   const embeddingModel = env.EMBEDDING_MODEL ?? 'text-embedding-3-small';
   const preferred = env.LLM_PRIMARY ?? 'openai';
 
-  const openAi = new OpenAiLlmService({ apiKey: openAiKey, model: openAiModel });
+  const llmBaseUrl = env.OPENAI_BASE_URL;
+  const embeddingBaseUrl = env.EMBEDDING_BASE_URL;
+
+  const openAi = new OpenAiLlmService({ apiKey: openAiKey, model: openAiModel, baseUrl: llmBaseUrl });
   const anthropic = anthropicKey
     ? new AnthropicLlmService({ apiKey: anthropicKey, model: anthropicModel })
     : undefined;
@@ -116,9 +121,12 @@ function buildDependencies(env: Env): AppDependencies {
     repository,
     authService: createSupabaseAuthFromEnv(envRecord),
     storageService: createSupabaseStorageFromEnv(envRecord),
-    queueService: createQueueServiceFromEnv(envRecord),
+    queueService: new HttpQueueService({
+      dispatchUrl: env.QUEUE_DISPATCH_URL ?? '',
+      dispatchToken: env.QUEUE_DISPATCH_TOKEN ?? ''
+    }),
     llmService: new FallbackLlmService({ primary, secondary }),
-    embeddingService: new OpenAiEmbeddingService({ apiKey: openAiKey, model: embeddingModel }),
+    embeddingService: new OpenAiEmbeddingService({ apiKey: openAiKey, model: embeddingModel, baseUrl: embeddingBaseUrl }),
     clock: () => new Date()
   };
 }

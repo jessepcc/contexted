@@ -67,10 +67,12 @@ function buildPairPrompt(profileA: string, profileB: string): ChatMessage[] {
 export class OpenAiLlmService implements LlmService {
   private readonly apiKey: string;
   private readonly model: string;
+  private readonly baseUrl: string;
 
-  constructor(input: { apiKey: string; model: string }) {
+  constructor(input: { apiKey: string; model: string; baseUrl?: string }) {
     this.apiKey = input.apiKey;
     this.model = input.model;
+    this.baseUrl = input.baseUrl ?? 'https://api.openai.com';
   }
 
   private async complete(messages: ChatMessage[], responseFormat?: 'json_object'): Promise<string> {
@@ -83,7 +85,7 @@ export class OpenAiLlmService implements LlmService {
 
     const response = await fetchJson<{
       choices: Array<{ message: { content: string } }>;
-    }>('https://api.openai.com/v1/chat/completions', {
+    }>(`${this.baseUrl}/v1/chat/completions`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${this.apiKey}`,
@@ -195,16 +197,18 @@ export class AnthropicLlmService implements LlmService {
 export class OpenAiEmbeddingService implements EmbeddingService {
   private readonly apiKey: string;
   private readonly model: string;
+  private readonly baseUrl: string;
 
-  constructor(input: { apiKey: string; model: string }) {
+  constructor(input: { apiKey: string; model: string; baseUrl?: string }) {
     this.apiKey = input.apiKey;
     this.model = input.model;
+    this.baseUrl = input.baseUrl ?? 'https://api.openai.com';
   }
 
   async embed(input: string): Promise<number[]> {
     const response = await fetchJson<{
       data: Array<{ embedding: number[] }>;
-    }>('https://api.openai.com/v1/embeddings', {
+    }>(`${this.baseUrl}/v1/embeddings`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${this.apiKey}`,
