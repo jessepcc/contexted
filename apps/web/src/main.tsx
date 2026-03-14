@@ -17,7 +17,6 @@ createRoot(rootElement).render(
 
 // Unregister any previously installed service worker — the old cache-first SW
 // served stale index.html after deploys, breaking the app.
-// See: https://developer.mozilla.org/en-US/docs/Web/API/ServiceWorkerRegistration/unregister
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.getRegistrations().then((regs) =>
     regs.forEach((r) => r.unregister())

@@ -1,6 +1,7 @@
 name: Deploy Web
 
 on:
+  workflow_dispatch:
   push:
     branches: [main]
     paths:
@@ -8,6 +9,7 @@ on:
       - 'packages/shared/**'
       - 'package.json'
       - 'package-lock.json'
+      - '.github/workflows/deploy-web.yml'
 
 jobs:
   deploy:
@@ -44,3 +46,4 @@ jobs:
           command: pages deploy dist --project-name contexted-web
           workingDirectory: apps/web
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
