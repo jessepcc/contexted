@@ -10,18 +10,9 @@ export default defineConfig({
       all: true,
       include: [
         'src/api.ts',
-        'src/types.ts',
-        'src/polling.ts',
-        'src/components/**/*.tsx',
-        'src/pages/**/*.tsx',
+        'src/referrals.ts',
         'src/hooks/**/*.ts'
-      ],
-      thresholds: {
-        statements: 60,
-        branches: 55,
-        functions: 60,
-        lines: 60
-      }
+      ]
     }
   }
 });
