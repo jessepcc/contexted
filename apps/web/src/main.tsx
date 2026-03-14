@@ -15,6 +15,10 @@ createRoot(rootElement).render(
   </StrictMode>
 );
 
+// Unregister any previously installed service worker — the old cache-first SW
+// served stale index.html after deploys, breaking the app.
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/sw.js').catch(() => {});
+  navigator.serviceWorker.getRegistrations().then((regs) =>
+    regs.forEach((r) => r.unregister())
+  );
 }
