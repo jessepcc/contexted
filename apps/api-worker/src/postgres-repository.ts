@@ -251,6 +251,30 @@ export class PostgresRepository implements Repository {
     return mapUser(created);
   }
 
+  async ensureUserWithAuthId(authId: string, email: string): Promise<UserRecord> {
+    // Check if user already exists with the correct auth ID
+    const [byId] = await this.sql`select * from users where id = ${authId} limit 1`;
+    if (byId) {
+      return mapUser(byId);
+    }
+
+    // User may have been pre-created with a DB-generated ID during magic-link send.
+    // Update the ID to match the auth provider's ID.
+    const [byEmail] = await this.sql`select * from users where email = ${email} limit 1`;
+    if (byEmail) {
+      const [updated] = await this.sql`
+        update users set id = ${authId} where email = ${email} returning *
+      `;
+      return mapUser(updated);
+    }
+
+    // No user exists at all — create with the auth ID
+    const [created] = await this.sql`
+      insert into users (id, email) values (${authId}, ${email}) returning *
+    `;
+    return mapUser(created);
+  }
+
   async setUserStatus(userId: string, status: UserRecord['status']): Promise<void> {
     await this.sql`
       update users
