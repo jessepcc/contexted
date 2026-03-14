@@ -128,6 +128,15 @@ export function LandingPage(): ReactElement {
         transition: { type: 'spring' as const, stiffness: 200, damping: 20, delay }
       };
 
+  // Supabase may redirect magic links to `/` instead of `/auth/verify` if the
+  // verify URL isn't in the project's allowed redirect list. Forward the hash so
+  // VerifyPage can consume the token.
+  useEffect(() => {
+    if (window.location.hash.includes('access_token')) {
+      window.location.replace(`/auth/verify${window.location.hash}`);
+    }
+  }, []);
+
   useEffect(() => {
     if (!inviteCode) {
       return;
@@ -156,27 +165,12 @@ export function LandingPage(): ReactElement {
     <PageShell blobs="landing">
       <section className="px-4 pb-14 pt-6 sm:px-6 sm:pt-8 md:pb-16 lg:px-8 lg:pt-10">
         <div className="mx-auto flex w-full max-w-6xl flex-col gap-10">
-          <motion.div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between" {...fadeUp(0)}>
-            <div className="flex items-center gap-4">
-              <div className="relative h-11 w-11">
-                <div className="absolute inset-0 rounded-[18px] border border-border-default bg-bg-card" />
-                <div
-                  className="absolute left-0 top-0 h-7 w-7 rounded-[16px]"
-                  style={{ background: 'color-mix(in srgb, var(--color-chatgpt) 70%, white)' }}
-                />
-                <div
-                  className="absolute bottom-0 right-0 h-6 w-6 rounded-[14px]"
-                  style={{ background: 'color-mix(in srgb, var(--color-accent) 82%, white)' }}
-                />
-              </div>
-
-              <div className="flex flex-col gap-0.5">
-                <span className="font-heading text-[24px] font-bold tracking-tight text-text-primary sm:text-[26px]">Contexted</span>
-                <span className="text-xs text-text-secondary sm:text-sm">Matching with your AI's memory</span>
-              </div>
+          <motion.div className="flex items-center justify-between" {...fadeUp(0)}>
+            <div className="flex flex-col">
+              <span className="font-heading text-lg font-bold tracking-tight text-text-primary sm:text-xl">Contexted</span>
+              <p className="text-[11px] tracking-wide text-text-secondary sm:text-xs">Matching with your AI's memory</p>
             </div>
-
-            <span className="self-start rounded-full border border-border-default bg-bg-card px-4 py-2 text-[10px] font-bold tracking-[0.18em] text-text-muted sm:text-[11px]">
+            <span className="rounded-full border border-border-default bg-bg-card px-4 py-2 text-[10px] font-bold tracking-[0.18em] text-text-muted sm:text-[11px]">
               ALPHA
             </span>
           </motion.div>
