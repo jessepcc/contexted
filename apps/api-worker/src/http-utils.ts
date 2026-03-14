@@ -115,6 +115,44 @@ export function createAuthMiddleware(deps: AppDependencies) {
   };
 }
 
+/**
+ * In-memory sliding window rate limiter keyed by IP (or fallback).
+ * Entries auto-evict after windowMs to bound memory.
+ */
+export function createRateLimiter(opts: { windowMs: number; maxRequests: number }) {
+  const hits = new Map<string, number[]>();
+
+  // Periodic cleanup to prevent unbounded growth
+  setInterval(() => {
+    const cutoff = Date.now() - opts.windowMs;
+    for (const [key, timestamps] of hits) {
+      const filtered = timestamps.filter((t) => t > cutoff);
+      if (filtered.length === 0) hits.delete(key);
+      else hits.set(key, filtered);
+    }
+  }, opts.windowMs).unref?.();
+
+  return (c: Context, next: Next): Promise<void | Response> => {
+    const key = c.req.header('x-forwarded-for')?.split(',')[0]?.trim()
+      ?? c.req.header('cf-connecting-ip')
+      ?? 'unknown';
+    const now = Date.now();
+    const cutoff = now - opts.windowMs;
+    const timestamps = (hits.get(key) ?? []).filter((t) => t > cutoff);
+    if (timestamps.length >= opts.maxRequests) {
+      const retryAfter = Math.ceil((timestamps[0]! + opts.windowMs - now) / 1000);
+      c.header('Retry-After', String(retryAfter));
+      return Promise.resolve(c.json(
+        { code: 'RATE_LIMITED', message: 'Too many requests. Please try again later.' },
+        429 as any
+      ));
+    }
+    timestamps.push(now);
+    hits.set(key, timestamps);
+    return next() as Promise<void | Response>;
+  };
+}
+
 export function withAppErrors(handler: (c: Context) => Promise<Response>): (c: Context) => Promise<Response> {
   return async (c: Context): Promise<Response> => {
     try {

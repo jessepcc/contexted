@@ -19,6 +19,7 @@ import { InMemoryRepository } from './in-memory-repository.js';
 import type { IngestionStatus, MatchRecord } from './model.js';
 import {
   createAuthMiddleware,
+  createRateLimiter,
   parseValidatedJson,
   requireIdempotencyKey,
   type AppEnv,
@@ -73,16 +74,17 @@ function hasInternalAdminAccess(c: Context, deps: AppDependencies): boolean {
   const expected = deps.config.internalAdminToken?.trim();
   const provided = c.req.header('X-Internal-Admin-Token')?.trim();
 
-  if (!expected || !provided || expected.length !== provided.length) {
+  if (!expected || !provided) {
     return false;
   }
 
   const encoder = new TextEncoder();
   const a = encoder.encode(expected);
   const b = encoder.encode(provided);
-  let result = 0;
-  for (let i = 0; i < a.length; i++) {
-    result |= a[i] ^ b[i];
+  const maxLen = Math.max(a.length, b.length);
+  let result = a.length ^ b.length; // length mismatch contributes to failure
+  for (let i = 0; i < maxLen; i++) {
+    result |= (a[i] ?? 0) ^ (b[i] ?? 0);
   }
   return result === 0;
 }
@@ -192,6 +194,8 @@ export function createApp(deps: AppDependencies): Hono<AppEnv> {
   }));
 
   const requireAuth = createAuthMiddleware(deps);
+  const authRateLimit = createRateLimiter({ windowMs: 60_000, maxRequests: 5 });
+  const claimRateLimit = createRateLimiter({ windowMs: 60_000, maxRequests: 10 });
 
   app.get('/health', (c) => c.json({ ok: true }));
 
@@ -200,6 +204,7 @@ export function createApp(deps: AppDependencies): Hono<AppEnv> {
 
   app.post(
     '/v1/referrals/claim',
+    claimRateLimit,
     requireAuth,
     withAppErrors(async (c: Context<AppEnv>) => {
       const viewer = c.get('viewer');
@@ -297,6 +302,7 @@ export function createApp(deps: AppDependencies): Hono<AppEnv> {
 
   app.post(
     '/v1/auth/magic-link',
+    authRateLimit,
     withAppErrors(async (c: Context) => {
       const body = await parseValidatedJson(c, magicLinkSchema, deps);
       const user = await deps.repository.findOrCreateUserByEmail(body.email);
@@ -320,10 +326,7 @@ export function createApp(deps: AppDependencies): Hono<AppEnv> {
     requireAuth,
     withAppErrors(async (c: Context<AppEnv>) => {
       const viewer = c.get('viewer');
-      const user = await deps.repository.getUserById(viewer.id);
-      if (!user) {
-        return c.json({ code: 'STATE_CONFLICT', field: 'user', message: 'User not found.' }, 404);
-      }
+      const user = await deps.repository.ensureUserWithAuthId(viewer.id, viewer.email);
 
       const latestIngestion = await deps.repository.getLatestProfileIngestionByUserId(viewer.id);
       const match = await deps.repository.getCurrentMatchByUserId(viewer.id);
