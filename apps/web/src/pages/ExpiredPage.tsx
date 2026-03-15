@@ -1,3 +1,4 @@
+import { useNavigate } from '@tanstack/react-router';
 import type { ReactElement } from 'react';
 import { useCallback, useEffect, useState } from 'react';
 import { motion } from 'motion/react';
@@ -17,6 +18,7 @@ import type { MatchResponse, ReferralOverviewResponse } from '../types.js';
 type FeedbackStatus = 'idle' | 'submitting' | 'submitted' | 'error';
 
 export function ExpiredPage(): ReactElement {
+  const navigate = useNavigate();
   const [matchId, setMatchId] = useState<string | null>(null);
   const [selectedRating, setSelectedRating] = useState<number | null>(null);
   const [feedbackStatus, setFeedbackStatus] = useState<FeedbackStatus>('idle');
@@ -211,7 +213,7 @@ export function ExpiredPage(): ReactElement {
             <Button
               className="w-full"
               onClick={() => {
-                window.location.href = '/app/waiting';
+                void navigate({ to: '/app/waiting' });
               }}
             >
               Back to the waiting room

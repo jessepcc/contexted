@@ -9,6 +9,13 @@ process.env.APP_MODE = process.env.APP_MODE ?? 'memory';
 
 const deps = createRuntimeDependencies(process.env);
 
+// Build a minimal JWT-like token so the frontend's getViewerIdFromToken() works in dev mode
+function devJwt(sub: string, email: string): string {
+  const header = Buffer.from('{"alg":"none","typ":"JWT"}').toString('base64url');
+  const payload = Buffer.from(JSON.stringify({ sub, email })).toString('base64url');
+  return `${header}.${payload}.dev`;
+}
+
 if (process.env.APP_MODE === 'memory') {
   const devUser = {
     id: '00000000-0000-4000-8000-000000000001',
@@ -23,9 +30,22 @@ if (process.env.APP_MODE === 'memory') {
   }
 
   if (deps.authService instanceof InMemoryAuthService) {
-    deps.authService.seedToken('dev-token', {
+    const devToken = devJwt(devUser.id, devUser.email);
+    deps.authService.seedToken(devToken, {
       id: devUser.id,
       email: devUser.email
+    });
+
+    // Test accounts for E2E dogfooding (JWT-like tokens so getViewerIdFromToken works)
+    const token1 = devJwt('00000000-0000-4000-8000-000000000011', 'jessechowpc@gmail.com');
+    const token2 = devJwt('00000000-0000-4000-8000-000000000012', 'jessepcc@connect.hku.hk');
+    deps.authService.seedToken(token1, {
+      id: '00000000-0000-4000-8000-000000000011',
+      email: 'jessechowpc@gmail.com'
+    });
+    deps.authService.seedToken(token2, {
+      id: '00000000-0000-4000-8000-000000000012',
+      email: 'jessepcc@connect.hku.hk'
     });
   }
 
@@ -60,7 +80,7 @@ serve(
   (info: { port: number }) => {
     console.log(`[api-worker] listening on http://localhost:${info.port} (mode=${process.env.APP_MODE})`);
     if (process.env.APP_MODE === 'memory') {
-      console.log('[api-worker] dev auth token: dev-token');
+      console.log('[api-worker] dev auth tokens are JWT-like (use /auth/verify#access_token=<token>)');
     }
   }
 );

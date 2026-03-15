@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Contexted is a peer-matching application MVP. Users upload profile content (chat exports, social media), which gets AI-summarized and embedded, then matched with compatible users in scheduled "drops." Matched users exchange confessions, unlock reveals, and chat. The current MVP also includes a private-invite loop: users can share a private invite link, invitees can claim it through auth, and successful referred signups earn both sides earlier consideration in future drops.
+Contexted is a peer-matching experiment built around AI memory — the living context that assistants like ChatGPT and Claude accumulate about a user over time. Users paste a memory export or excerpt, the system reads it for recurring themes and tone, then discards the raw text. Matches happen in scheduled batch "drops." Each match surfaces shared synergy points and a mutual confession prompt; once both sides respond, an anonymous chat opens. The MVP also includes a private-invite loop where successful referrals earn both sides earlier consideration in future drops.
 
 ## Monorepo Structure
 
@@ -53,7 +53,7 @@ The API worker uses constructor-style DI via `AppDependencies` (defined in `depe
 
 - `Repository` — data access (Postgres or in-memory)
 - `AuthService` — Supabase magic link auth
-- `StorageService` — signed upload URLs
+- `StorageService` — signed upload URLs (file upload is a secondary path; primary intake is pasted memory text via `/v1/intake/summary`)
 - `QueueService` — async job dispatch (ingest, drop)
 - `LlmService` — redaction/summarization, vibe checks, pair content
 - `EmbeddingService` — vector embeddings
@@ -112,4 +112,5 @@ Supabase Postgres with RLS. The base schema is in `packages/db/migrations/001_in
 - Private invites are designed to feel quiet and curated, not gamified.
 - Earlier consideration means queue/order preference, not guaranteed matching.
 - Bootstrap was intentionally left unchanged for the invite MVP; the web app claims pending invites after auth via the app gateway.
+- **Product language is "AI memory", not "chat exports"** — the product frames what users bring as "the memory your AI has built with you," not as raw chat logs or file uploads. This distinction is deliberate: the value is in the accumulated understanding, not the transcript. Use "memory" in user-facing copy, not "export" or "upload."
 - See `docs/private-invites.md` for the operational flow and API contract.

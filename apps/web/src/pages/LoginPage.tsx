@@ -32,7 +32,11 @@ export function LoginPage(): ReactElement {
       setSent(true);
     } catch (err) {
       if (err instanceof HttpError) {
-        setError(err.payload.message);
+        setError(
+          err.status === 429
+            ? 'Too many requests — wait a moment, then try again.'
+            : err.payload.message
+        );
       } else {
         setError('Something went wrong. Please try again.');
       }

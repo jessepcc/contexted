@@ -17,6 +17,7 @@ export function RevealPage(): ReactElement {
   const { appState } = useAppContext();
   const reduced = useReducedMotion();
   const [match, setMatch] = useState<MatchResponse | null>(null);
+  const [loading, setLoading] = useState(true);
   const [pollInterval, setPollInterval] = useState(5000);
   const [answer, setAnswer] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -35,8 +36,17 @@ export function RevealPage(): ReactElement {
   }, [navigate]);
 
   useEffect(() => {
-    void load().catch((reason) => setError(reason instanceof Error ? reason.message : 'Failed to load your reveal.'));
-  }, [load]);
+    void load()
+      .then(() => setLoading(false))
+      .catch((reason) => {
+        if (reason instanceof HttpError && [404, 422].includes(reason.status)) {
+          navigate({ to: '/app/waiting' });
+          return;
+        }
+        setError(reason instanceof Error ? reason.message : 'Failed to load your reveal.');
+        setLoading(false);
+      });
+  }, [load, navigate]);
 
   usePolling({
     enabled: true,
@@ -56,7 +66,7 @@ export function RevealPage(): ReactElement {
       await apiRequest<{ state: string; version: number }>(`/v1/matches/${match.match_id}/confession`, {
         method: 'POST',
         headers: {
-          'Idempotency-Key': `confession-${Date.now()}`
+          'Idempotency-Key': `confession-${match.match_id}-v${match.version}`
         },
         body: JSON.stringify({ answer, expected_version: match.version })
       });
@@ -68,6 +78,17 @@ export function RevealPage(): ReactElement {
   }, [answer, load, match?.match_id, match?.version]);
 
   const spring = { type: 'spring' as const, stiffness: 200, damping: 20 };
+
+  if (loading && !match) {
+    return (
+      <PageShell blobs="reveal">
+        <div className="flex flex-col items-center gap-3 px-6 pt-24">
+          <h1 className="font-heading text-2xl font-bold text-text-primary">Opening your reveal…</h1>
+          <div className="h-8 w-8 rounded-full border-4 border-accent border-t-transparent animate-spin" aria-hidden="true" />
+        </div>
+      </PageShell>
+    );
+  }
 
   return (
     <PageShell blobs="reveal">

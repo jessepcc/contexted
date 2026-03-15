@@ -1,25 +1,11 @@
-const CACHE_NAME = 'contexted-v1';
-const SHELL_ASSETS = ['/', '/index.html'];
-
-self.addEventListener('install', (event) => {
+// Self-unregistering service worker — clears stale caches from previous versions.
+// Kept as a file so browsers with an old SW will pick up this version and clean up.
+self.addEventListener('install', () => self.skipWaiting());
+self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(SHELL_ASSETS))
+    caches.keys().then((keys) => Promise.all(keys.map((k) => caches.delete(k))))
+      .then(() => self.clients.matchAll())
+      .then((clients) => clients.forEach((c) => c.navigate(c.url)))
   );
-});
-
-self.addEventListener('fetch', (event) => {
-  const url = new URL(event.request.url);
-
-  // Network-first for API calls
-  if (url.pathname.startsWith('/v1/') || url.pathname.startsWith('/r/')) {
-    event.respondWith(
-      fetch(event.request).catch(() => caches.match(event.request))
-    );
-    return;
-  }
-
-  // Cache-first for everything else
-  event.respondWith(
-    caches.match(event.request).then((cached) => cached || fetch(event.request))
-  );
+  self.registration.unregister();
 });

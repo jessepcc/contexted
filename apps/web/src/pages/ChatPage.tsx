@@ -94,13 +94,14 @@ export function ChatPage(): ReactElement {
 
   useEffect(() => {
     void loadMatch()
-      .then(() => {
+      .then(async () => {
         if (matchIdRef.current) {
           apiRequest('/v1/matches/' + matchIdRef.current + '/read', { method: 'POST' }).catch(() => {});
+          await loadMessages();
         }
       })
       .catch((reason) => setError(reason instanceof Error ? reason.message : 'Failed to load your conversation.'));
-  }, [loadMatch]);
+  }, [loadMatch, loadMessages]);
 
   usePolling({
     enabled: Boolean(matchIdRef.current) && conversationReady,

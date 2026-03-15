@@ -3,6 +3,7 @@ import { createElement, useState } from 'react';
 import { AppContext } from './AppContext.js';
 import type { AppState } from './AppContext.js';
 import { RootLayout } from './components/RootLayout.js';
+import { NotFoundPage } from './pages/NotFoundPage.js';
 
 const LandingPage = lazyRouteComponent(() => import('./pages/LandingPage.js'), 'LandingPage');
 const LoginPage = lazyRouteComponent(() => import('./pages/LoginPage.js'), 'LoginPage');
@@ -26,7 +27,10 @@ function AppLayout() {
   );
 }
 
-const rootRoute = createRootRoute({ component: RootLayout });
+const rootRoute = createRootRoute({
+  component: RootLayout,
+  notFoundComponent: NotFoundPage
+});
 
 const indexRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -43,6 +47,13 @@ const authLoginRoute = createRoute({
 const authVerifyRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/auth/verify',
+  component: VerifyPage
+});
+
+// Supabase may redirect to /verify (without /auth/ prefix) depending on dashboard config
+const verifyAliasRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/verify',
   component: VerifyPage
 });
 
@@ -118,6 +129,7 @@ const routeTree = rootRoute.addChildren([
   indexRoute,
   authLoginRoute,
   authVerifyRoute,
+  verifyAliasRoute,
   appLayoutRoute.addChildren([
     appIndexRoute,
     appUploadRoute,

@@ -1,11 +1,11 @@
-# Dogfood Report: Contexted web app
+# Dogfood Report: Contexted
 
 | Field | Value |
 |-------|-------|
-| **Date** | 2026-03-08 |
-| **App URL** | `http://127.0.0.1:5180` |
-| **Session** | `contexted-local` |
-| **Scope** | Full app UX review with responsiveness focus |
+| **Date** | 2026-03-13 |
+| **App URL** | http://127.0.0.1:5200 |
+| **Session** | contexted-e2e |
+| **Scope** | Full E2E: onboarding, referral, submit, match, queue, chat |
 
 ## Summary
 
@@ -13,87 +13,90 @@
 |----------|-------|
 | Critical | 0 |
 | High | 0 |
-| Medium | 3 |
+| Medium | 2 |
 | Low | 0 |
-| **Total** | **3** |
+| **Total** | **2** |
 
 ## Issues
 
-### ISSUE-001: Chat route keeps polling after the conversation has already closed
+### ISSUE-001: Chat messages not loaded on initial page mount
 
 | Field | Value |
 |-------|-------|
 | **Severity** | medium |
-| **Category** | performance / ux / console |
-| **URL** | `http://127.0.0.1:5180/app/chat` |
+| **Category** | functional |
+| **URL** | http://127.0.0.1:5200/app/chat |
 | **Repro Video** | N/A |
+| **Status** | FIXED |
 
 **Description**
 
-When a signed-in user lands directly on `/app/chat` after the match window has expired, the page renders a disabled composer, shows “Chat is unavailable,” and repeatedly hits `/v1/matches/:id/messages`. The result is a visibly broken screen plus a growing console-error stream instead of routing the user into the designed expired/feedback flow.
+When a user navigates to the chat page, existing messages from the partner are not displayed until either: (a) the user sends their own message, or (b) the polling interval fires (5s foreground, 30s background). The root cause is that `usePolling` starts with a `setTimeout` delay before the first tick, and `loadMessages()` was never called synchronously after `loadMatch()`.
+
+**Fix Applied**
+
+Added `await loadMessages()` after `loadMatch()` in the `useEffect` mount handler in `ChatPage.tsx:95-103`. Messages now appear immediately when the chat page opens.
 
 **Repro Steps**
 
-1. Set `localStorage.contexted_token = "dev-token"` and open `http://127.0.0.1:5180/app/chat`
-   ![Step 1](screenshots/chat-current-mobile.png)
+1. User 2 sends a message in the chat
+2. User 1 navigates to /app/chat
+   ![Before fix](screenshots/06-user1-chat.png)
+3. **Observe:** Empty state shown ("You're in. Start with the overlap that felt real.") despite messages existing in the API
 
-2. Observe that the page still mounts the chat shell even though the conversation is closed
-   ![Step 2](screenshots/chat-current-desktop.png)
-
-3. Observe repeated failed `/messages` requests and a dead composer instead of a redirect to the feedback state
-   ![Result](screenshots/chat-current-desktop.png)
+4. After fix, reload the same page
+   ![After fix](screenshots/06-user1-chat-fixed.png)
+5. **Observe:** Messages appear immediately on load
 
 ---
 
-### ISSUE-002: The landing page stays stacked too long on mid-sized screens
+### ISSUE-002: Dev mode tokens break chat message alignment
 
 | Field | Value |
 |-------|-------|
 | **Severity** | medium |
-| **Category** | ux / visual / responsive |
-| **URL** | `http://127.0.0.1:5180/` |
+| **Category** | functional |
+| **URL** | http://127.0.0.1:5200/app/chat |
 | **Repro Video** | N/A |
+| **Status** | FIXED |
 
 **Description**
 
-Around tablet and small-laptop widths, the editorial introduction and the memory workbench stay in a single long column. The result is a very tall scroll where the input rail feels buried beneath the narrative setup instead of feeling like an adjacent action surface.
+In memory/dev mode, the seeded auth tokens (e.g., `dev-token`, `token-user1`) are plain strings, not JWTs. The frontend's `getViewerIdFromToken()` in `auth.ts` attempts to decode the JWT payload to extract the user ID (`sub` claim). With non-JWT tokens, this always returns `null`, causing `isMine` in the chat to be `false` for all messages. Both user's and partner's messages appear left-aligned with the same styling, making it impossible to distinguish who sent what.
+
+**Fix Applied**
+
+Modified `dev-server.ts` to generate JWT-like tokens using `Buffer.from().toString('base64url')` with proper `{"sub":"...","email":"..."}` payloads. The `getViewerIdFromToken()` function now correctly extracts the user ID in dev mode.
 
 **Repro Steps**
 
-1. Open the landing page at roughly `820px` wide
-   ![Step 1](screenshots/landing-current-820.png)
+1. Open chat with old plain-text dev tokens
+   ![Before fix](screenshots/06-user1-msg-sent.png)
+2. **Observe:** Both messages are left-aligned (all appear as "theirs")
 
-2. Observe that the workbench does not appear alongside the hero content yet
-   ![Result](screenshots/landing-current-820.png)
-
----
-
-### ISSUE-003: The memory workbench is too tall and instruction-heavy on narrow screens
-
-| Field | Value |
-|-------|-------|
-| **Severity** | medium |
-| **Category** | ux / responsive |
-| **URL** | `http://127.0.0.1:5180/` |
-| **Repro Video** | N/A |
-
-**Description**
-
-On phone-sized layouts, the workbench card spends a lot of vertical space on tutorial chrome before the user reaches the actual memory textarea and CTA. The experience feels slower than it should for a user who already knows what they want to paste.
-
-**Repro Steps**
-
-1. Open the landing page on a mobile viewport
-   ![Step 1](screenshots/landing-current-mobile.png)
-
-2. Scroll into the workbench and observe how much of the card is occupied by the tutorial before the input and CTA
-   ![Result](screenshots/landing-current-mobile.png)
+3. After fix, reload with JWT-like tokens
+   ![After fix](screenshots/07-chat-alignment-fixed.png)
+4. **Observe:** User's message right-aligned with accent background, partner's left-aligned
 
 ---
 
-## Follow-up Pass
+## E2E Flow Verification
 
-- `Preferences`, `Waiting`, and `Reveal` were re-checked in authenticated mode on March 8, 2026.
-- `Waiting` and `Reveal` did not surface new blocking or high-severity responsiveness bugs in the current seeded state.
-- `Preferences` still felt too phone-first on wide screens, so it was widened into a two-column desktop layout during this pass.
-- The user-reported "chat is using the mobile layout on wide screen" issue mapped to the redirected `/app/expired` experience after `/app/chat` correctly determined the conversation was closed; that desktop layout was widened and split into a proper two-column handoff.
+All core flows were tested end-to-end and work correctly:
+
+| Flow | Status | Notes |
+|------|--------|-------|
+| Landing page | Pass | Memory paste, copy prompt, step indicators all work |
+| Login (magic link) | Pass | Email validation, form submission, "check inbox" page |
+| Auth verification | Pass | Token extraction from hash, localStorage persistence |
+| App gateway routing | Pass | Correctly routes based on phase + intake draft |
+| Memory intake submission | Pass | Draft auto-submitted during preferences flow |
+| Preferences | Pass | Gender identity, attraction, age range all functional |
+| Waitlist enrollment | Pass | Enrolls user and transitions to waiting state |
+| Private invite flow | Pass | Code generated, invite URL works, banner shows for invitee |
+| Referral claim | Pass | Invite claimed, priority credits awarded |
+| Drop / matching | Pass | Dev trigger-drop endpoint matches compatible users |
+| Reveal page | Pass | Synergy points, confession prompt, timer all display |
+| Confession submission | Pass | Idempotency key, version checks, unlock on both confessions |
+| Chat | Pass | Messages send/receive, polling works, Enter key sends |
+| Chat alignment | Pass | (after fix) Own messages right-aligned with accent color |

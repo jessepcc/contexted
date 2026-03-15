@@ -1,4 +1,4 @@
-import { apiRequest, HttpError } from './api.js';
+import { apiRequest, apiRequestRaw, HttpError } from './api.js';
 import type { ReferralClaimResponse, ReferralOverviewResponse, ReferralShareContent } from './types.js';
 
 const PENDING_INVITE_KEY = 'contexted_pending_invite_code';
@@ -101,11 +101,8 @@ export async function trackInviteClick(inviteCode: string): Promise<void> {
   }
 
   try {
-    await fetch(`/v1/referrals/${encodeURIComponent(sanitized)}/click`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      }
+    await apiRequestRaw(`/v1/referrals/${encodeURIComponent(sanitized)}/click`, {
+      method: 'POST'
     });
   } catch {
     // Private invite tracking should never block the landing experience.

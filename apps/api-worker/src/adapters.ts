@@ -1,4 +1,5 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import { ApiValidationError } from '@contexted/shared';
 import type {
   AuthService,
   EmbeddingService,
@@ -28,6 +29,12 @@ export class SupabaseAuthService implements AuthService {
     });
 
     if (response.error) {
+      if (response.error.status === 429) {
+        throw new ApiValidationError(
+          { code: 'STATE_CONFLICT', message: 'email rate limit exceeded' },
+          429
+        );
+      }
       throw new Error(`Failed to send magic link: ${response.error.message}`);
     }
   }
