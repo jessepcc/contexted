@@ -1,6 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createApp } from '../src/app.js';
 import { createInMemoryDependencies } from '../src/factories.js';
+import { resetRateLimitersForTests } from '../src/http-utils.js';
 import { processIngestionJob } from '../src/services/ingestion-service.js';
 import { hashRevealToken } from '../src/utils.js';
 
@@ -84,6 +85,15 @@ async function seedEligibleWaitingUser(
 }
 
 describe('api worker', () => {
+  beforeEach(() => {
+    resetRateLimitersForTests();
+  });
+
+  afterEach(() => {
+    resetRateLimitersForTests();
+    vi.useRealTimers();
+  });
+
   it('sends magic links and normalizes stored email', async () => {
     const setup = await buildTestApp();
 
@@ -139,6 +149,50 @@ describe('api worker', () => {
         failure_reason: null,
         finished_at: null
       }
+    });
+  });
+
+  it('rate limits magic-link requests across recreated apps using cf-connecting-ip first', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-03-03T12:00:00.000Z'));
+
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      const setup = await buildTestApp();
+      const response = await setup.app.request('/v1/auth/magic-link', {
+        method: 'POST',
+        headers: {
+          'CF-Connecting-IP': '198.51.100.24',
+          'Content-Type': 'application/json',
+          'X-Forwarded-For': `203.0.113.${attempt + 1}`
+        },
+        body: JSON.stringify({
+          email: `newuser${attempt}@example.com`,
+          redirect_to: 'https://contexted.app/auth/verify'
+        })
+      });
+
+      expect(response.status).toBe(200);
+    }
+
+    const setup = await buildTestApp();
+    const response = await setup.app.request('/v1/auth/magic-link', {
+      method: 'POST',
+      headers: {
+        'CF-Connecting-IP': '198.51.100.24',
+        'Content-Type': 'application/json',
+        'X-Forwarded-For': '203.0.113.250'
+      },
+      body: JSON.stringify({
+        email: 'blocked@example.com',
+        redirect_to: 'https://contexted.app/auth/verify'
+      })
+    });
+
+    expect(response.status).toBe(429);
+    expect(response.headers.get('Retry-After')).toBe('60');
+    expect(await response.json()).toEqual({
+      code: 'RATE_LIMITED',
+      message: 'Too many requests. Please try again later.'
     });
   });
 
@@ -1023,6 +1077,48 @@ describe('api worker', () => {
       claimed: true,
       eligible_for_reward: true,
       reason: null
+    });
+  });
+
+  it('rate limits referral claims and returns retry-after', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-03-03T12:00:00.000Z'));
+
+    const setup = await buildTestApp();
+    const inviteResponse = await setup.app.request('/v1/referrals/me', {
+      headers: { Authorization: 'Bearer token-user' }
+    });
+    const inviteCode = (await inviteResponse.json()).invite_code as string;
+
+    for (let attempt = 0; attempt < 10; attempt += 1) {
+      const response = await setup.app.request('/v1/referrals/claim', {
+        method: 'POST',
+        headers: {
+          Authorization: 'Bearer token-user',
+          'CF-Connecting-IP': '198.51.100.25',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ invite_code: inviteCode })
+      });
+
+      expect(response.status).toBe(422);
+    }
+
+    const response = await setup.app.request('/v1/referrals/claim', {
+      method: 'POST',
+      headers: {
+        Authorization: 'Bearer token-user',
+        'CF-Connecting-IP': '198.51.100.25',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ invite_code: inviteCode })
+    });
+
+    expect(response.status).toBe(429);
+    expect(response.headers.get('Retry-After')).toBe('60');
+    expect(await response.json()).toEqual({
+      code: 'RATE_LIMITED',
+      message: 'Too many requests. Please try again later.'
     });
   });
 

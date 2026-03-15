@@ -194,8 +194,8 @@ export function createApp(deps: AppDependencies): Hono<AppEnv> {
   }));
 
   const requireAuth = createAuthMiddleware(deps);
-  const authRateLimit = createRateLimiter({ windowMs: 60_000, maxRequests: 5 });
-  const claimRateLimit = createRateLimiter({ windowMs: 60_000, maxRequests: 10 });
+  const authRateLimit = createRateLimiter({ name: 'auth-magic-link', windowMs: 60_000, maxRequests: 5 });
+  const claimRateLimit = createRateLimiter({ name: 'referrals-claim', windowMs: 60_000, maxRequests: 10 });
 
   app.get('/health', (c) => c.json({ ok: true }));
 
