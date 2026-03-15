@@ -115,6 +115,90 @@ export function createAuthMiddleware(deps: AppDependencies) {
   };
 }
 
+type RateLimiterStore = {
+  hits: Map<string, number[]>;
+  lastCleanupAt: number;
+};
+
+const rateLimiterStores = new Map<string, RateLimiterStore>();
+
+function getRateLimiterStore(name: string): RateLimiterStore {
+  let store = rateLimiterStores.get(name);
+  if (!store) {
+    store = {
+      hits: new Map<string, number[]>(),
+      lastCleanupAt: 0
+    };
+    rateLimiterStores.set(name, store);
+  }
+
+  return store;
+}
+
+function cleanupExpiredHits(store: RateLimiterStore, cutoff: number): void {
+  for (const [key, timestamps] of store.hits) {
+    const filtered = timestamps.filter((timestamp) => timestamp > cutoff);
+    if (filtered.length === 0) {
+      store.hits.delete(key);
+      continue;
+    }
+
+    store.hits.set(key, filtered);
+  }
+}
+
+function getRateLimitKey(c: Context): string {
+  const cloudflareIp = c.req.header('cf-connecting-ip')?.trim();
+  if (cloudflareIp) {
+    return cloudflareIp;
+  }
+
+  const trueClientIp = c.req.header('true-client-ip')?.trim();
+  if (trueClientIp) {
+    return trueClientIp;
+  }
+
+  const forwardedFor = c.req.header('x-forwarded-for')?.split(',')[0]?.trim();
+  return forwardedFor || 'unknown';
+}
+
+/**
+ * In-memory sliding window rate limiter keyed by client IP.
+ * State is module-scoped so it survives app recreation within a single isolate.
+ */
+export function createRateLimiter(opts: { name: string; windowMs: number; maxRequests: number }) {
+  const store = getRateLimiterStore(opts.name);
+
+  return async (c: Context, next: Next): Promise<void | Response> => {
+    const key = getRateLimitKey(c);
+    const now = Date.now();
+    const cutoff = now - opts.windowMs;
+
+    if (now - store.lastCleanupAt >= opts.windowMs) {
+      cleanupExpiredHits(store, cutoff);
+      store.lastCleanupAt = now;
+    }
+
+    const timestamps = (store.hits.get(key) ?? []).filter((timestamp) => timestamp > cutoff);
+    if (timestamps.length >= opts.maxRequests) {
+      const retryAfter = Math.ceil((timestamps[0]! + opts.windowMs - now) / 1000);
+      c.header('Retry-After', String(retryAfter));
+      return c.json(
+        { code: 'RATE_LIMITED', message: 'Too many requests. Please try again later.' },
+        429 as any
+      );
+    }
+
+    timestamps.push(now);
+    store.hits.set(key, timestamps);
+    await next();
+  };
+}
+
+export function resetRateLimitersForTests(): void {
+  rateLimiterStores.clear();
+}
+
 export function withAppErrors(handler: (c: Context) => Promise<Response>): (c: Context) => Promise<Response> {
   return async (c: Context): Promise<Response> => {
     try {

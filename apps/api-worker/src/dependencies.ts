@@ -63,6 +63,7 @@ export type Repository = {
   upsertUser(user: UserRecord): Promise<UserRecord>;
   getUserById(userId: string): Promise<UserRecord | null>;
   findOrCreateUserByEmail(email: string): Promise<UserRecord>;
+  ensureUserWithAuthId(authId: string, email: string): Promise<UserRecord>;
   setUserStatus(userId: string, status: UserStatus): Promise<void>;
   hasAnyMatchForUser(userId: string): Promise<boolean>;
 

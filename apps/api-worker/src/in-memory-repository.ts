@@ -123,6 +123,26 @@ export class InMemoryRepository implements Repository {
     return created;
   }
 
+  async ensureUserWithAuthId(authId: string, email: string): Promise<UserRecord> {
+    const byId = this.users.get(authId);
+    if (byId) {
+      return byId;
+    }
+
+    const byEmail = [...this.users.values()].find((item) => item.email === email);
+    if (byEmail) {
+      this.users.delete(byEmail.id);
+      byEmail.id = authId;
+      this.users.set(authId, byEmail);
+      return byEmail;
+    }
+
+    const now = new Date().toISOString();
+    const created: UserRecord = { id: authId, email, status: 'waiting', createdAt: now, lastActiveAt: now };
+    this.users.set(authId, created);
+    return created;
+  }
+
   async setUserStatus(userId: string, status: UserRecord['status']): Promise<void> {
     const user = this.users.get(userId);
     if (!user) {
