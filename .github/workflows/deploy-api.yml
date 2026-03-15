@@ -23,6 +23,8 @@ jobs:
     permissions:
       contents: read
       deployments: write
+    env:
+      CLOUDFLARE_WORKERS_API_TOKEN: ${{ secrets.CLOUDFLARE_WORKERS_API_TOKEN }}
     steps:
       - uses: actions/checkout@v4
 
@@ -46,15 +48,15 @@ jobs:
         run: npm run build --prefix packages/shared
 
       - name: Check Workers deploy token
-        if: ${{ secrets.CLOUDFLARE_WORKERS_API_TOKEN == '' }}
+        if: ${{ env.CLOUDFLARE_WORKERS_API_TOKEN == '' }}
         run: |
           echo "::warning title=Missing CLOUDFLARE_WORKERS_API_TOKEN::Set a Workers-capable Cloudflare API token in GitHub Actions secrets to enable automated API deploys."
 
       - name: Deploy API worker
-        if: ${{ secrets.CLOUDFLARE_WORKERS_API_TOKEN != '' }}
+        if: ${{ env.CLOUDFLARE_WORKERS_API_TOKEN != '' }}
         uses: cloudflare/wrangler-action@v3
         with:
           command: deploy --env production
           workingDirectory: apps/api-worker
-          apiToken: ${{ secrets.CLOUDFLARE_WORKERS_API_TOKEN }}
+          apiToken: ${{ env.CLOUDFLARE_WORKERS_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
