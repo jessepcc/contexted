@@ -1,17 +1,18 @@
 import { redactSensitiveText } from '@contexted/shared';
 import { useNavigate } from '@tanstack/react-router';
 import { motion } from 'motion/react';
-import type { CSSProperties, ReactElement } from 'react';
+import type { ReactElement } from 'react';
 import { useEffect, useMemo, useState } from 'react';
 import { Button } from '../components/Button.js';
 import { PageShell } from '../components/PageShell.js';
 import { useReducedMotion } from '../hooks/useDelight.js';
 import type { IntakeProvider } from '../intakeDraft.js';
-import { loadIntakeDraft, saveIntakeDraft } from '../intakeDraft.js';
+import { loadIntakeDraft, saveIntakeDraft, saveLastIntakePreview } from '../intakeDraft.js';
+import { buildMemoryReview, buildPreviewSnapshot } from '../memoryReview.js';
 import { getInviteCodeFromSearch, savePendingInviteCode, trackInviteClick } from '../referrals.js';
 
 const MEMORY_EXPORT_PROMPT =
-  "I'm moving to another service and need to export my data. List every memory you have stored about me, as well as any context you've learned about me from past conversations. Output everything in a single code block so I can easily copy it. Format each entry as: [date saved, if available] - memory content. Make sure to cover all of the following — preserve my words verbatim where possible: Instructions I've given you about how to respond (tone, format, style, 'always do X', 'never do Y'). Personal details: name, location, job, family, interests. Projects, goals, and recurring topics. Tools, languages, and frameworks I use. Preferences and corrections I've made to your behavior. Any other stored context not covered above. Do not summarize, group, or omit any entries. After the code block, confirm whether that is the complete set or if any remain.";
+  'Help me prepare a reviewed excerpt from your memory about me for a compatibility experiment. Exclude or replace anything directly identifying before you print it: names, employers, exact locations, family names, usernames, email addresses, phone numbers, government IDs, financial details, API keys, passwords, and private credentials. Keep the recurring themes, values, interests, habits, projects, and the tone of how I think. If something feels too identifying, summarize it instead of quoting it verbatim. Return only a concise excerpt inside a single code block.';
 
 const steps = [
   {
@@ -21,90 +22,18 @@ const steps = [
   },
   {
     num: '02',
-    title: 'Paste the memory that feels true right now',
-    desc: 'Bring the living context — export, excerpt, or memory snapshot — you want matched on in this moment.'
+    title: 'Review the excerpt before you paste it',
+    desc: 'Treat this like a manual privacy pass. Bring the part that feels true right now, not the entire archive.'
   },
   {
     num: '03',
     title: 'Join the next alpha drop',
-    desc: 'Verify your email, set preferences, and we test whether evolving AI memory can surface a similar soul.'
+    desc: 'Verify your email, set preferences, and join the next alpha drop.'
   }
 ];
 
-const PROVIDERS: Array<{ id: IntakeProvider; label: string }> = [
-  { id: 'chatgpt', label: 'ChatGPT' },
-  { id: 'claude', label: 'Claude' },
-  { id: 'other', label: 'Other' }
-];
-
-const CHATGPT_TUTORIAL_STEPS = [
-  { label: 'Settings', detail: 'open the menu' },
-  { label: 'Personalization', detail: 'find memory controls' },
-  { label: 'Memory', detail: 'open your saved context' },
-  { label: 'Export', detail: 'grab the current memory' }
-] as const;
-
-function getSelectedProviderStyle(provider: IntakeProvider): CSSProperties {
-  switch (provider) {
-    case 'chatgpt':
-      return {
-        borderColor: 'var(--color-chatgpt)',
-        background: 'color-mix(in srgb, var(--color-chatgpt) 14%, var(--color-bg-card))',
-        color: 'var(--color-chatgpt-contrast)'
-      };
-    case 'claude':
-      return {
-        borderColor: 'var(--color-accent)',
-        background: 'var(--color-accent-soft)',
-        color: 'var(--color-accent-ink)'
-      };
-    default:
-      return {
-        borderColor: 'var(--color-purple)',
-        background: 'var(--color-purple-soft)',
-        color: 'var(--color-text-primary)'
-      };
-  }
-}
-
-function ChatGptTutorialPreview({ reduced }: { reduced: boolean }): ReactElement {
-  return (
-    <div className="rounded-[24px] border border-border-default bg-bg-card p-3 sm:rounded-[26px] sm:p-4">
-      <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] font-bold tracking-[0.18em] text-text-muted">
-        <span>MEMORY EXPORT PATH</span>
-        <span>Quick path</span>
-      </div>
-
-      <div
-        className="relative mt-3 overflow-hidden rounded-[20px] border border-border-default p-2 sm:rounded-[22px]"
-        style={{ background: 'color-mix(in srgb, var(--color-bg-card) 78%, var(--color-bg-elevated))' }}
-      >
-        <motion.div
-          className="pointer-events-none absolute left-2 right-2 top-2 h-10 rounded-[16px] border border-transparent bg-accent-soft sm:h-11 sm:rounded-[18px]"
-          animate={reduced ? undefined : { y: [0, 40, 80, 120, 0] }}
-          transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
-        />
-        <motion.div
-          className="pointer-events-none absolute left-4 top-[19px] h-2.5 w-2.5 rounded-full bg-accent sm:top-[21px]"
-          animate={reduced ? undefined : { y: [0, 40, 80, 120, 0] }}
-          transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
-        />
-
-        {CHATGPT_TUTORIAL_STEPS.map((step) => (
-          <div key={step.label} className="relative z-10 flex h-10 items-center justify-between rounded-[16px] px-3 sm:h-12 sm:rounded-[18px] sm:px-4">
-            <span className="text-[13px] font-semibold text-text-primary sm:text-sm">{step.label}</span>
-            <span className="text-[11px] text-text-secondary sm:text-xs">{step.detail}</span>
-          </div>
-        ))}
-      </div>
-
-      <p className="mt-3 text-xs leading-relaxed text-text-secondary">
-        Settings <span aria-hidden>&rarr;</span> Personalization <span aria-hidden>&rarr;</span> Memory{' '}
-        <span aria-hidden>&rarr;</span> Export. Grab the export, then paste the section you want this alpha to read.
-      </p>
-    </div>
-  );
-}
+const DEFAULT_PROVIDER: IntakeProvider = 'other';
+const DEFAULT_PROVIDER_LABEL = 'AI memory';
 
 export function LandingPage(): ReactElement {
   const navigate = useNavigate();
@@ -113,11 +42,10 @@ export function LandingPage(): ReactElement {
   const inviteCode = useMemo(() => getInviteCodeFromSearch(window.location.search), []);
   const [summaryText, setSummaryText] = useState(initialDraft?.summaryText ?? '');
   const [promptCopied, setPromptCopied] = useState(false);
-  const [provider, setProvider] = useState<IntakeProvider>(initialDraft?.provider ?? 'chatgpt');
-  const [providerLabel, setProviderLabel] = useState(initialDraft?.providerLabel ?? '');
+  const [reviewConfirmed, setReviewConfirmed] = useState(initialDraft?.reviewConfirmed ?? false);
 
-  const canContinue =
-    summaryText.trim().length > 0 && (provider !== 'other' || providerLabel.trim().length > 0);
+  const review = useMemo(() => buildMemoryReview(summaryText), [summaryText]);
+  const canContinue = summaryText.trim().length > 0 && reviewConfirmed;
 
   const fadeUp = (delay: number) =>
     reduced
@@ -152,11 +80,13 @@ export function LandingPage(): ReactElement {
     }
 
     const redacted = redactSensitiveText(summaryText).text;
+    saveLastIntakePreview(buildPreviewSnapshot(review, DEFAULT_PROVIDER, DEFAULT_PROVIDER_LABEL));
 
     saveIntakeDraft({
       summaryText: redacted,
-      provider,
-      providerLabel: provider === 'other' ? providerLabel : ''
+      provider: DEFAULT_PROVIDER,
+      providerLabel: DEFAULT_PROVIDER_LABEL,
+      reviewConfirmed
     });
     void navigate({ to: '/auth/login' });
   }
@@ -267,10 +197,15 @@ export function LandingPage(): ReactElement {
                     type="button"
                     className="inline-flex min-h-11 items-center justify-center rounded-full border border-border-default px-4 py-1.5 text-xs font-medium text-text-secondary transition-colors hover:border-accent hover:text-accent-ink"
                     onClick={() => {
-                      navigator.clipboard.writeText(MEMORY_EXPORT_PROMPT).then(() => {
-                        setPromptCopied(true);
-                        setTimeout(() => setPromptCopied(false), 2000);
-                      });
+                      navigator.clipboard
+                        .writeText(MEMORY_EXPORT_PROMPT)
+                        .then(() => {
+                          setPromptCopied(true);
+                          setTimeout(() => setPromptCopied(false), 2000);
+                        })
+                        .catch(() => {
+                          setPromptCopied(false);
+                        });
                     }}
                   >
                     {promptCopied ? 'Copied!' : 'Copy'}
@@ -292,40 +227,87 @@ export function LandingPage(): ReactElement {
                 </div>
               </div>
 
-              <div className={`flex flex-col gap-2`}>
-                <label htmlFor="memory-text" className="text-[12px] font-bold tracking-[0.18em] text-text-muted">
-                  MEMORY FOR MATCHING
-                </label>
-                <p id="memory-help" className="text-sm leading-relaxed text-text-secondary">
-                  Paste the memory you want matched on. We redact obvious direct identifiers, look for recurring
-                  threads, and turn it into matching text plus a summary.
-                </p>
-                <textarea
-                  id="memory-text"
-                  className="min-h-44 w-full rounded-[24px] border border-border-default bg-bg-card px-4 py-4 text-sm leading-relaxed text-text-primary placeholder:text-text-muted focus:border-accent focus:outline-none md:min-h-52 md:rounded-[26px]"
-                  placeholder="Paste the memory your AI has built with you — export, excerpt, or import-memory result…"
-                  value={summaryText}
-                  aria-describedby="memory-help"
-                  onChange={(event) => setSummaryText(event.target.value)}
-                />
+              <div className="flex flex-col gap-4 rounded-[28px] border border-border-default bg-bg-card p-4 md:p-5">
+                <div className="flex flex-col gap-1">
+                  <span className="w-fit rounded-full bg-accent-soft px-3 py-1 text-[11px] font-bold tracking-[0.18em] text-accent-ink">
+                    STEP 2
+                  </span>
+                  <p className="font-heading text-lg font-semibold text-text-primary">
+                    Paste the full memory dump.
+                  </p>
+                </div>
+
+                <div className="flex flex-col gap-2">
+
+                  <textarea
+                    id="memory-text"
+                    className="min-h-44 w-full rounded-[24px] border border-border-default bg-bg-card px-4 py-4 text-sm leading-relaxed text-text-primary placeholder:text-text-muted focus:border-accent focus:outline-none md:min-h-52 md:rounded-[26px]"
+                    placeholder="Paste the full memory dump you want this alpha to read..."
+                    value={summaryText}
+                    onChange={(event) => {
+                      setSummaryText(event.target.value);
+                      if (reviewConfirmed) {
+                        setReviewConfirmed(false);
+                      }
+                    }}
+                  />
+                </div>
+
+                <div
+                  className="rounded-[24px] border border-border-default p-4"
+                  style={{ background: 'color-mix(in srgb, var(--color-bg-card) 74%, var(--color-bg-elevated))' }}
+                >
+                  <span className="block text-[12px] font-bold tracking-[0.18em] text-text-muted">MANUAL REVIEW REQUIRED</span>
+                  <ul className="mt-3 flex flex-col gap-3">
+                    {review.manualReviewItems.map((item) => (
+                      <li key={item} className="flex items-start gap-3 text-sm leading-relaxed text-text-secondary">
+                        <span className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full bg-accent" />
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+
+                  {review.alerts.length > 0 ? (
+                    <div className="mt-4 flex flex-col gap-3">
+                      {review.alerts.map((alert) => (
+                        <div
+                          key={alert.id}
+                          className={`rounded-[18px] border px-4 py-3 ${alert.tone === 'negative'
+                            ? 'border-negative/25 bg-negative-soft/70 text-negative'
+                            : 'border-accent/18 bg-accent-soft/70 text-accent-ink'
+                            }`}
+                        >
+                          <p className="text-sm font-semibold">{alert.title}</p>
+                          <p className="mt-1 text-sm leading-relaxed">{alert.message}</p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
+
+                  <div className="mt-4">
+                    <label className="flex items-start gap-3 rounded-[18px] border border-border-default bg-bg-card px-4 py-3 text-sm leading-relaxed text-text-primary">
+                      <input
+                        type="checkbox"
+                        checked={reviewConfirmed}
+                        onChange={(event) => setReviewConfirmed(event.target.checked)}
+                        className="mt-1 h-4 w-4 rounded border-border-strong text-accent focus:ring-0"
+                      />
+                      <span>
+                        I reviewed this excerpt myself. I removed names, employers, exact locations, family details,
+                        and secrets, and I understand Contexted stores derived matching text for this alpha.
+                      </span>
+                    </label>
+                  </div>
+                </div>
               </div>
 
-              <div className={`flex flex-col gap-3`}>
+              <div className="flex flex-col gap-3">
                 <Button type="button" onClick={handleContinue} disabled={!canContinue} className="w-full">
                   Continue to email
                 </Button>
                 <Button type="button" variant="secondary" onClick={() => navigate({ to: '/app' })} className="w-full">
                   Returning user
                 </Button>
-
-                <div className="flex flex-col gap-2 text-sm leading-relaxed">
-                  {!canContinue ? (
-                    <p className="text-text-secondary">Paste a memory export or excerpt to unlock the next step.</p>
-                  ) : null}
-                  <p className="text-text-secondary">
-                    Alpha note: your AI memory is alive and changing. Future drops can shift as your context shifts.
-                  </p>
-                </div>
               </div>
             </motion.section>
           </div>

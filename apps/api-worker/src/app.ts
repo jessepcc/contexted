@@ -312,12 +312,16 @@ export function createApp(deps: AppDependencies): Hono<AppEnv> {
         lastActiveAt: deps.clock().toISOString()
       });
 
-      await deps.authService.sendMagicLink({
+      const magicLink = await deps.authService.sendMagicLink({
         email: body.email,
-        redirectTo: body.redirect_to
+        redirectTo: body.redirect_to,
+        userId: user.id
       });
 
-      return c.json({ sent: true });
+      return c.json({
+        sent: true,
+        dev_verify_url: magicLink.devVerifyUrl ?? null
+      });
     })
   );
 
@@ -652,6 +656,27 @@ export function createApp(deps: AppDependencies): Hono<AppEnv> {
       });
       await maybeRewardReferral(deps, viewer.id, nowIso, !user.queueEnteredAt);
       return c.json({ enrolled: true, status: 'waiting' });
+    })
+  );
+
+  app.get(
+    '/v1/profile/me',
+    requireAuth,
+    withAppErrors(async (c: Context<AppEnv>) => {
+      const viewer = c.get('viewer');
+      const profile = await deps.repository.getProfileByUserId(viewer.id);
+
+      if (!profile) {
+        return c.json({ code: 'STATE_CONFLICT', field: 'profile', message: 'Profile processing is incomplete.' }, 404);
+      }
+
+      return c.json({
+        source: profile.source,
+        sanitized_summary: profile.sanitizedSummary,
+        vibe_check_card: profile.vibeCheckCard ?? null,
+        pii_risk_score: profile.piiRiskScore,
+        updated_at: profile.updatedAt
+      });
     })
   );
 

@@ -20,7 +20,7 @@ export class SupabaseAuthService implements AuthService {
     });
   }
 
-  async sendMagicLink(input: { email: string; redirectTo: string }): Promise<void> {
+  async sendMagicLink(input: { email: string; redirectTo: string; userId?: string }): Promise<{ devVerifyUrl?: string }> {
     const response = await this.client.auth.signInWithOtp({
       email: input.email,
       options: {
@@ -37,6 +37,8 @@ export class SupabaseAuthService implements AuthService {
       }
       throw new Error(`Failed to send magic link: ${response.error.message}`);
     }
+
+    return {};
   }
 
   async authenticateToken(token: string): Promise<{ id: string; email: string } | null> {
@@ -55,12 +57,36 @@ export class SupabaseAuthService implements AuthService {
 export class InMemoryAuthService implements AuthService {
   private readonly usersByToken = new Map<string, { id: string; email: string }>();
 
+  private buildDevJwt(sub: string, email: string): string {
+    const header = Buffer.from('{"alg":"none","typ":"JWT"}').toString('base64url');
+    const payload = Buffer.from(JSON.stringify({ sub, email })).toString('base64url');
+    return `${header}.${payload}.dev`;
+  }
+
   seedToken(token: string, user: { id: string; email: string }): void {
     this.usersByToken.set(token, user);
   }
 
-  async sendMagicLink(): Promise<void> {
-    return;
+  async sendMagicLink(input: { email: string; redirectTo: string; userId?: string }): Promise<{ devVerifyUrl?: string }> {
+    if (!input.userId) {
+      return {};
+    }
+
+    const token = this.buildDevJwt(input.userId, input.email);
+    this.seedToken(token, {
+      id: input.userId,
+      email: input.email
+    });
+
+    const url = new URL(input.redirectTo);
+    url.hash = new URLSearchParams({
+      access_token: token,
+      token_type: 'bearer'
+    }).toString();
+
+    return {
+      devVerifyUrl: url.toString()
+    };
   }
 
   async authenticateToken(token: string): Promise<{ id: string; email: string } | null> {

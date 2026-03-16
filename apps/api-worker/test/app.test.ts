@@ -107,7 +107,10 @@ describe('api worker', () => {
     });
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ sent: true });
+    expect(await response.json()).toMatchObject({
+      sent: true,
+      dev_verify_url: expect.stringContaining('https://contexted.app/auth/verify#access_token=')
+    });
 
     const created = [...setup.repository.users.values()].find((user) => user.email === 'newuser@example.com');
     expect(created).toBeDefined();
@@ -536,6 +539,36 @@ describe('api worker', () => {
       }
     });
     expect(secondAttempt.status).toBe(200);
+  });
+
+  it('returns the current derived profile for the viewer', async () => {
+    const setup = await buildTestApp();
+
+    await setup.repository.upsertProfile({
+      userId: setup.user.id,
+      source: 'claude',
+      matchText: 'systems, honesty, and writing',
+      sanitizedSummary: 'Keeps returning to systems, honesty, and writing as a way to feel grounded.',
+      vibeCheckCard: 'You think in drafts, keep asking better questions, and trust emotional precision over noise.',
+      embedding: new Array(1536).fill(0.1),
+      embeddingModel: setup.deps.config.embeddingModel,
+      piiRiskScore: 25,
+      createdAt: setup.deps.clock().toISOString(),
+      updatedAt: setup.deps.clock().toISOString()
+    });
+
+    const response = await setup.app.request('/v1/profile/me', {
+      headers: { Authorization: 'Bearer token-user' }
+    });
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      source: 'claude',
+      sanitized_summary: 'Keeps returning to systems, honesty, and writing as a way to feel grounded.',
+      vibe_check_card: 'You think in drafts, keep asking better questions, and trust emotional precision over noise.',
+      pii_risk_score: 25,
+      updated_at: setup.deps.clock().toISOString()
+    });
   });
 
   it('serves reveal artifacts and respects token expiry', async () => {

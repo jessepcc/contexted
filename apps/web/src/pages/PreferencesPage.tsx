@@ -227,10 +227,11 @@ export function PreferencesPage(): ReactElement {
               {...(reduced ? {} : staggerItem(4))}
             >
               <p className="text-sm leading-relaxed text-text-secondary">
-                This last bit keeps the matching pool warm and directional without turning it into profile theater.
+                This last bit keeps the matching pool warm and directional without turning it into profile theater. As
+                soon as you submit, we generate the derived profile card that sits with you in the waiting room.
               </p>
               <Button type="submit" disabled={busy} className="w-full">
-                {busy ? 'Saving...' : 'Join the next drop'}
+                {busy ? 'Saving...' : 'Generate my profile and join the next drop'}
               </Button>
               {error ? (
                 <p id="preferences-error" role="alert" className="text-sm text-negative">

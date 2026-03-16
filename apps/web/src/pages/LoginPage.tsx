@@ -11,6 +11,7 @@ import { buildMagicLinkRedirect, loadPendingInviteCode } from '../referrals.js';
 export function LoginPage(): ReactElement {
   const [email, setEmail] = useState('');
   const [sent, setSent] = useState(false);
+  const [devVerifyUrl, setDevVerifyUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const reduced = useReducedMotion();
@@ -20,16 +21,18 @@ export function LoginPage(): ReactElement {
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
+    setDevVerifyUrl(null);
     setSubmitting(true);
 
     try {
-      await apiRequest<{ sent: boolean }>('/v1/auth/magic-link', {
+      const response = await apiRequest<{ sent: boolean; dev_verify_url: string | null }>('/v1/auth/magic-link', {
         method: 'POST',
         body: JSON.stringify({
           email,
           redirect_to: buildMagicLinkRedirect(window.location.origin)
         })
       });
+      setDevVerifyUrl(response.dev_verify_url);
       setSent(true);
     } catch (err) {
       if (err instanceof HttpError) {
@@ -60,8 +63,20 @@ export function LoginPage(): ReactElement {
             We sent a magic link to <strong>{email}</strong> so we can tie this memory entry to you without a password.
           </p>
           <p className="text-center text-sm text-text-muted">
-            Open it on this device and we&rsquo;ll drop you back into the alpha.
+            {devVerifyUrl
+              ? 'Memory mode does not send email. Use the local sign-in link below on this device.'
+              : 'Open it on this device and we&rsquo;ll drop you back into the alpha.'}
           </p>
+          {devVerifyUrl ? (
+            <Button
+              type="button"
+              onClick={() => {
+                window.location.assign(devVerifyUrl);
+              }}
+            >
+              Open local sign-in link
+            </Button>
+          ) : null}
         </motion.div>
       </PageShell>
     );

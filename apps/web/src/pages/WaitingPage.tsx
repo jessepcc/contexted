@@ -1,16 +1,19 @@
 import { useNavigate } from '@tanstack/react-router';
 import type { ReactElement } from 'react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { motion } from 'motion/react';
 import { useAppContext } from '../AppContext.js';
 import { apiRequest } from '../api.js';
 import { PageShell } from '../components/PageShell.js';
+import { ProfileSnapshotCard } from '../components/ProfileSnapshotCard.js';
 import { ReferralInviteCard } from '../components/ReferralInviteCard.js';
 import { useReducedMotion } from '../hooks/useDelight.js';
+import { loadLastIntakePreview } from '../intakeDraft.js';
+import { buildMemoryReview } from '../memoryReview.js';
 import { usePolling } from '../polling.js';
 import { buildReferralShareContent, consumeReferralFlash, fetchReferralOverview } from '../referrals.js';
 import { copyToClipboard, shareOrCopy } from '../share.js';
-import type { BootstrapResponse, ReferralOverviewResponse } from '../types.js';
+import type { BootstrapResponse, ProfileSnapshotResponse, ReferralOverviewResponse } from '../types.js';
 import { getWaitingRoomContent } from '../waitingRoom.js';
 
 const STATUS_TONE_CLASS = {
@@ -24,12 +27,15 @@ export function WaitingPage(): ReactElement {
   const navigate = useNavigate();
   const { appState, setAppState } = useAppContext();
   const reduced = useReducedMotion();
+  const fallbackPreview = useMemo(() => loadLastIntakePreview(), []);
   const [shareStatus, setShareStatus] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [referral, setReferral] = useState<ReferralOverviewResponse | null>(null);
   const [referralError, setReferralError] = useState<string | null>(null);
   const [loadingReferral, setLoadingReferral] = useState(true);
   const [referralFlash, setReferralFlash] = useState<string | null>(null);
+  const [profilePreview, setProfilePreview] = useState<ProfileSnapshotResponse | null>(null);
+  const [profileError, setProfileError] = useState<string | null>(null);
 
   const waitingContent = getWaitingRoomContent(appState?.drop ?? null);
 
@@ -86,6 +92,21 @@ export function WaitingPage(): ReactElement {
     }
   }
 
+  async function loadProfilePreview(): Promise<void> {
+    try {
+      const nextProfile = await apiRequest<ProfileSnapshotResponse>('/v1/profile/me');
+      setProfilePreview(nextProfile);
+      setProfileError(null);
+    } catch (error) {
+      setProfilePreview(null);
+      setProfileError(
+        fallbackPreview
+          ? 'Showing the local preview you approved while the live profile card catches up.'
+          : 'Your live profile preview is not available yet.'
+      );
+    }
+  }
+
   async function handleShare(): Promise<void> {
     const shareContent = referral ? buildReferralShareContent(referral) : null;
     if (!shareContent) {
@@ -128,7 +149,8 @@ export function WaitingPage(): ReactElement {
       setLoadError(reason instanceof Error ? reason.message : 'Live drop status unavailable right now.');
     });
     void loadReferralOverview();
-  }, [syncBootstrap]);
+    void loadProfilePreview();
+  }, [fallbackPreview, syncBootstrap]);
 
   usePolling({
     enabled: true,
@@ -142,6 +164,18 @@ export function WaitingPage(): ReactElement {
       }
     }
   });
+
+  const liveSignals = useMemo(
+    () => (profilePreview ? buildMemoryReview(profilePreview.sanitized_summary).signals : []),
+    [profilePreview]
+  );
+  const liveProviderLabel = profilePreview
+    ? profilePreview.source === 'chatgpt'
+      ? 'ChatGPT excerpt'
+      : profilePreview.source === 'claude'
+        ? 'Claude excerpt'
+        : 'Mixed provider excerpt'
+    : null;
 
   return (
     <PageShell blobs="waiting">
@@ -196,6 +230,33 @@ export function WaitingPage(): ReactElement {
                 </p>
               ) : null}
             </motion.section>
+
+            {profilePreview && liveProviderLabel ? (
+              <motion.div {...fadeUp(0.18)}>
+                <ProfileSnapshotCard
+                  eyebrow="WHAT YOUR PROFILE HOLDS"
+                  title="The derived profile that will travel into the next drop."
+                  providerLabel={liveProviderLabel}
+                  summary={profilePreview.sanitized_summary}
+                  vibeCheck={profilePreview.vibe_check_card}
+                  signals={liveSignals}
+                  footer="This is the actual derived output from your reviewed excerpt, not a placeholder."
+                />
+              </motion.div>
+            ) : fallbackPreview ? (
+              <motion.div {...fadeUp(0.18)}>
+                <ProfileSnapshotCard
+                  eyebrow="YOUR APPROVED PREVIEW"
+                  title="The reviewed excerpt you approved is still visible while the live card catches up."
+                  providerLabel={fallbackPreview.providerLabel}
+                  summary={fallbackPreview.redactedPreviewText}
+                  signals={fallbackPreview.signals}
+                  alerts={fallbackPreview.alerts}
+                  tone="preview"
+                  footer={profileError ?? 'This is the local preview you approved before processing finished.'}
+                />
+              </motion.div>
+            ) : null}
           </div>
 
           <div className="flex flex-col gap-4 md:sticky md:top-8">
@@ -217,15 +278,15 @@ export function WaitingPage(): ReactElement {
             >
               <span className="text-[12px] font-bold tracking-[0.18em] text-text-muted">HOW MEMORY GETS READ</span>
               <p className="text-sm leading-relaxed text-text-primary">
-                Contexted looks for tone, recurring themes, and the way your AI memory keeps describing you — then
-                tests that against what someone else keeps returning to.
+                Contexted looks for tone, recurring themes, and the way your reviewed excerpt keeps describing you —
+                then tests that against what someone else keeps returning to.
               </p>
               <p className="text-sm leading-relaxed text-text-secondary">
                 The goal is less “best profile” and more “similar soul, similar chapter.”
               </p>
               <p className="text-sm leading-relaxed text-text-secondary">
-                This is an alpha. The matching signals, reveal language, and memory read keep changing as we learn
-                what social value AI memory can actually create.
+                This is an alpha. Automatic redaction is intentionally limited, and the matching signals, reveal
+                language, and memory read keep changing as we learn what social value AI memory can actually create.
               </p>
             </motion.section>
 

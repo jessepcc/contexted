@@ -36,6 +36,10 @@ const sections = [
       'You keep ownership of the text you submit. By using Contexted, you give us permission to host, redact, transform, analyze, and store that content as needed to operate the product.',
       'That permission includes creating derived summaries, matching text, embeddings, reveal copy, and other output needed to run the service.',
     ],
+    bullets: [
+      'You are responsible for reviewing your excerpt before submission and removing names, employers, exact locations, family details, and secrets.',
+      'Do not submit information you do not have permission to use or information that would create unnecessary privacy risk for you or anyone else.',
+    ],
   },
   {
     id: 'service',
@@ -79,12 +83,13 @@ export function TermsPage(): ReactElement {
       title="The rules for using an experimental product built around AI memory."
       intro="These terms are intentionally plain. Contexted is still early, and the contract should be readable by the people actually using it."
       updatedLabel="Last updated March 16, 2026"
-      highlights={['18+ only', 'Use it respectfully', 'Alpha means unfinished']}
+      highlights={['18+ only', 'Manual review required', 'Alpha means unfinished']}
       sections={[...sections]}
       summaryTitle="Short version"
       summaryBullets={[
         'You must be 18+ and use the service respectfully.',
         'You keep ownership of what you submit, but you let Contexted process it to run matching.',
+        'You are responsible for reviewing your excerpt and removing sensitive or identifying details before submission.',
         'This is an alpha product with no guarantee of matches, uptime, or polished outcomes.',
       ]}
     />

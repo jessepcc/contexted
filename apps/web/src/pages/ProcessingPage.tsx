@@ -1,17 +1,18 @@
 import { useNavigate, useSearch } from '@tanstack/react-router';
 import type { ReactElement } from 'react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import { apiRequest } from '../api.js';
 import { PageShell } from '../components/PageShell.js';
+import { ProfileSnapshotCard } from '../components/ProfileSnapshotCard.js';
 import { AnimatedNumber } from '../components/AnimatedNumber.js';
 import { RotatingText } from '../components/RotatingText.js';
 import { usePolling } from '../polling.js';
 import { useReducedMotion } from '../hooks/useDelight.js';
-import { clearActiveJobId, getActiveJobId } from '../intakeDraft.js';
+import { clearActiveJobId, getActiveJobId, loadLastIntakePreview } from '../intakeDraft.js';
 
 const PROCESSING_STEPS = [
-  'Obvious direct identifiers softened',
+  'Contact-style details softened',
   'Memory excerpt mapped into themes',
   'Matching profile generated',
   'Queued for the next drop',
@@ -38,6 +39,7 @@ export function ProcessingPage(): ReactElement {
   const reduced = useReducedMotion();
   const { jobId } = useSearch({ from: '/app/processing' });
   const resolvedJobId = jobId || getActiveJobId();
+  const preview = useMemo(() => loadLastIntakePreview(), []);
   const completionHandledRef = useRef(false);
   const [job, setJob] = useState<{ state: string; progress: number; poll_after_ms?: number } | null>(null);
   const [pollInterval, setPollInterval] = useState(2000);
@@ -131,7 +133,7 @@ export function ProcessingPage(): ReactElement {
             <RotatingText texts={ROTATING_MESSAGES} intervalMs={3500} />
           </h1>
           <p className="text-sm text-text-secondary" aria-live="polite">
-            We redact obvious direct identifiers, map the themes, and prepare your matching profile.
+            We soften contact-style details automatically, map the themes that remain, and prepare your matching profile.
           </p>
         </div>
 
@@ -212,6 +214,21 @@ export function ProcessingPage(): ReactElement {
             );
           })}
         </div>
+
+        {preview ? (
+          <div className="w-full max-w-3xl">
+            <ProfileSnapshotCard
+              eyebrow="YOU ALREADY HAVE SOMETHING"
+              title="The reviewed excerpt you approved stays visible while the deeper read finishes."
+              providerLabel={preview.providerLabel}
+              summary={preview.redactedPreviewText}
+              signals={preview.signals}
+              alerts={preview.alerts}
+              tone="preview"
+              footer="This is the local preview you approved before signup. Once processing finishes, the waiting room swaps in the derived matching profile and vibe check."
+            />
+          </div>
+        ) : null}
 
         {/* Error display */}
         {error && (

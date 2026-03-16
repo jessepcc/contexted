@@ -1,0 +1,8 @@
+.agents/ export-ignore
+.claude/ export-ignore
+.codex/ export-ignore
+AGENTS.md export-ignore
+CLAUDE.md export-ignore
+dogfood-output/ export-ignore
+docs/initial_doc/ export-ignore
+docs/plans/ export-ignore

@@ -1,21 +1,15 @@
 # Docs
 
-This directory contains product, design, and planning documents for Contexted.
+This directory contains maintainer-facing product, design, and planning documents for Contexted.
+
+If you are approaching the repository from the outside, start with the root `README.md`, `CONTRIBUTING.md`, and `SECURITY.md` first. Those files are the supported public entry points.
 
 ## `initial_doc/`
 
-The files in `initial_doc/` are the original concept and design materials for the project. They capture the early product direction, working assumptions, and implementation thinking at the time they were written.
+The files in `initial_doc/` are historical concept materials from the early project phase.
 
-They should be treated as historical reference, not as an exact description of the current codebase. The live implementation has evolved and does not fully match every detail in these documents.
-
-Current contents:
-
-- `PRD.md` — original product requirements draft
-- `advisory-findings.md` — early advisory notes and findings
-- `design.md` — original design direction
-- `design.pen` — design artifact/source file
-- `implementation-tech-spec.md` — initial implementation plan
+They are maintainer archives, not part of the supported public docs surface, and they do not describe the current codebase with production accuracy.
 
 ## `plans/`
 
-This folder contains newer planning documents produced after the initial concept phase.
+This folder contains working implementation plans and maintainer notes. Treat them as in-progress internal planning material rather than public product documentation.

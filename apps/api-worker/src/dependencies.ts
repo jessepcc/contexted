@@ -20,8 +20,12 @@ export type AuthenticatedUser = {
   email: string;
 };
 
+export type MagicLinkResult = {
+  devVerifyUrl?: string;
+};
+
 export type AuthService = {
-  sendMagicLink(input: { email: string; redirectTo: string }): Promise<void>;
+  sendMagicLink(input: { email: string; redirectTo: string; userId?: string }): Promise<MagicLinkResult>;
   authenticateToken(token: string): Promise<AuthenticatedUser | null>;
 };
 

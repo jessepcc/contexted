@@ -14,11 +14,11 @@ const sections = [
     id: 'collect',
     title: 'What we collect',
     paragraphs: [
-      'We collect the information you choose to provide directly, such as your email address, matching preferences, invite usage, chat messages, reports, feedback, and the memory text you paste into intake.',
+      'We collect the information you choose to provide directly, such as your email address, matching preferences, invite usage, chat messages, reports, feedback, and the reviewed memory excerpt you paste into intake.',
       'We also create derived data from that intake so the product can function.',
     ],
     bullets: [
-      'A redacted draft of your memory may be stored in browser storage on your device until you finish the flow or clear it.',
+      'A reviewed draft of your excerpt may be stored in browser storage on your device until you finish the flow or clear it.',
       'The service generates and stores a redacted matching text, a derived summary, a vibe-check style description, and an embedding used for similarity search.',
       'We keep basic operational records such as rate-limit state, ingestion job state, and match lifecycle data.',
     ],
@@ -44,7 +44,7 @@ const sections = [
     title: 'Retention and limits',
     paragraphs: [
       'Today, Contexted stores the redacted matching text and derived summary that power future drops. That means the system does not currently behave like a pure transient processor.',
-      'DO NOT paste sensitive secrets, financial data, government identifiers, or anything you would not want retained in redacted form as part of your profile state.',
+      'Automatic redaction is intentionally limited. It mostly catches contact-style details, not every identifying reference. DO NOT paste names, employers, exact locations, family details, sensitive secrets, financial data, government identifiers, or anything you would not want retained in redacted form as part of your profile state.',
     ],
     bullets: [
       'Raw drafts on your device remain subject to your browser storage until you clear them or finish the flow.',
@@ -56,8 +56,8 @@ const sections = [
     id: 'choices',
     title: 'Your choices',
     paragraphs: [
-      'You control what you paste into Contexted. The safest approach is to share only the portion of your AI memory that you genuinely want used for matching.',
-      'If you do not want a piece of information processed, do not submit it. This service is not designed for medical, legal, payment, or other highly regulated personal records.',
+      'You control what you paste into Contexted. The safest approach is to share only a reviewed excerpt that you genuinely want used for matching.',
+      'If you do not want a piece of information processed, do not submit it. This service is not designed for full memory exports, medical, legal, payment, or other highly regulated personal records.',
     ],
   },
 ] as const;
@@ -70,13 +70,13 @@ export function PrivacyPage(): ReactElement {
       title="How Contexted handles the memory you hand it."
       intro="This experiment only works if the data story is readable. Here is the plain-language version of what the current alpha keeps, derives, and uses when you trust it with intimate text."
       updatedLabel="Last updated March 16, 2026"
-      highlights={['Email sign-in', 'Redacted memory text', 'Derived matching profile']}
+      highlights={['Email sign-in', 'Manual review required', 'Derived matching profile']}
       sections={[...sections]}
       summaryTitle="What matters most"
       summaryBullets={[
-        'We use your email to sign you in and your submitted memory to generate matching signals.',
+        'We use your email to sign you in and your reviewed excerpt to generate matching signals.',
         'The service stores redacted matching text and derived profile data today.',
-        'You should avoid pasting secrets or anything you would not want retained in redacted form.',
+        'Automatic redaction is limited, so you should remove names, employers, exact locations, and secrets yourself before submitting.',
       ]}
     />
   );

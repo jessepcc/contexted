@@ -67,3 +67,11 @@ export type ReferralShareContent = {
   text: string;
   url: string;
 };
+
+export type ProfileSnapshotResponse = {
+  source: 'chatgpt' | 'claude' | 'both';
+  sanitized_summary: string;
+  vibe_check_card: string | null;
+  pii_risk_score: number;
+  updated_at: string;
+};

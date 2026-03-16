@@ -29,13 +29,15 @@ cd apps/web && npm run dev
 
 The web dev server proxies `/v1` and `/r` routes to the API automatically. `npm run dev` no longer requires a local `.env` file for memory mode.
 
+In memory mode, requesting a magic link does not send email. The login screen will show a one-device local sign-in link instead.
+
 ## Running Tests
 
 ```bash
 # All tests across workspaces
 npm run test
 
-# With coverage (60% threshold enforced)
+# With workspace coverage reports
 npm run test:coverage
 
 # Single test file
@@ -45,7 +47,7 @@ cd apps/api-worker && npx vitest run test/app.test.ts
 ## Before Submitting a PR
 
 1. **Typecheck**: `npm run typecheck` must pass
-2. **Tests**: `npm run test:coverage` must pass with >= 60% coverage (statements, branches, functions, lines)
+2. **Tests**: `npm run test:coverage` must pass
 3. **Safety scan**: `npm run safety:scan` must pass — this checks for destructive command patterns in scripts and docs
 4. **No lint tooling yet** — lint scripts are currently no-ops
 
@@ -68,6 +70,12 @@ packages/db/       — SQL migrations (applied to Supabase)
 ## Running with Supabase (Optional)
 
 For the full matching pipeline (embeddings, drops, chat), you'll need a Supabase project, an OpenAI API key, and a local `.env` copied from `.env.example`. The local Node runtime falls back to in-process ingestion if queue env vars are unset, so pasted-memory intake still works without separate queue infra. See the README for details.
+
+## Data Handling Expectations
+
+- Treat the landing flow as a reviewed-excerpt flow, not a full-memory dump flow.
+- Automatic redaction is intentionally limited and mostly contact-shaped.
+- Remove names, employers, exact locations, family details, credentials, and secrets before submitting text during local or production testing.
 
 ## Community Docs
 
