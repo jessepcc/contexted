@@ -15,9 +15,10 @@ import {
   InMemoryQueueService,
   InMemoryStorageService
 } from './adapters.js';
-import type { AppDependencies } from './dependencies.js';
+import type { AppDependencies, QueueService } from './dependencies.js';
 import { InMemoryRepository } from './in-memory-repository.js';
 import { PostgresRepository } from './postgres-repository.js';
+import { processIngestionJob } from './services/ingestion-service.js';
 
 function createAiDependenciesFromEnv(env: Record<string, string | undefined>): {
   llmService: FallbackLlmService;
@@ -112,14 +113,37 @@ export function createRuntimeDependencies(env: Record<string, string | undefined
 
   const aiDependencies = createAiDependenciesFromEnv(env);
 
-  return {
+  let deps: AppDependencies;
+  const queueService: QueueService =
+    env.QUEUE_DISPATCH_URL && env.QUEUE_DISPATCH_TOKEN
+      ? createQueueServiceFromEnv(env)
+      : {
+          async enqueue(topic, payload): Promise<void> {
+            if (topic !== 'ingest') {
+              return;
+            }
+
+            queueMicrotask(() => {
+              void processIngestionJob(deps, {
+                jobId: payload.jobId,
+                sourceText: payload.sourceText
+              }).catch((error) => {
+                console.error(`[local-queue] ingestion failed job=${payload.jobId}:`, error);
+              });
+            });
+          }
+        };
+
+  deps = {
     config: loadConfig(env),
     repository,
     authService: createSupabaseAuthFromEnv(env),
     storageService: createSupabaseStorageFromEnv(env),
-    queueService: createQueueServiceFromEnv(env),
+    queueService,
     llmService: aiDependencies.llmService,
     embeddingService: aiDependencies.embeddingService,
     clock: () => new Date()
   };
+
+  return deps;
 }

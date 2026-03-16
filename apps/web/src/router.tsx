@@ -8,6 +8,8 @@ import { NotFoundPage } from './pages/NotFoundPage.js';
 const LandingPage = lazyRouteComponent(() => import('./pages/LandingPage.js'), 'LandingPage');
 const LoginPage = lazyRouteComponent(() => import('./pages/LoginPage.js'), 'LoginPage');
 const VerifyPage = lazyRouteComponent(() => import('./pages/VerifyPage.js'), 'VerifyPage');
+const PrivacyPage = lazyRouteComponent(() => import('./pages/PrivacyPage.js'), 'PrivacyPage');
+const TermsPage = lazyRouteComponent(() => import('./pages/TermsPage.js'), 'TermsPage');
 const AppGatewayPage = lazyRouteComponent(() => import('./pages/AppGatewayPage.js'), 'AppGatewayPage');
 const UploadPage = lazyRouteComponent(() => import('./pages/UploadPage.js'), 'UploadPage');
 const ProcessingPage = lazyRouteComponent(() => import('./pages/ProcessingPage.js'), 'ProcessingPage');
@@ -55,6 +57,18 @@ const verifyAliasRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/verify',
   component: VerifyPage
+});
+
+const privacyRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/privacy',
+  component: PrivacyPage
+});
+
+const termsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/terms',
+  component: TermsPage
 });
 
 const appLayoutRoute = createRoute({
@@ -130,6 +144,8 @@ const routeTree = rootRoute.addChildren([
   authLoginRoute,
   authVerifyRoute,
   verifyAliasRoute,
+  privacyRoute,
+  termsRoute,
   appLayoutRoute.addChildren([
     appIndexRoute,
     appUploadRoute,

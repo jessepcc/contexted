@@ -3,8 +3,27 @@ import type { AppDependencies } from '../dependencies.js';
 
 export type ProcessIngestionInput = {
   jobId: string;
-  sourceText: string;
+  sourceText?: string;
 };
+
+async function loadSourceText(deps: AppDependencies, storageKey: string): Promise<string> {
+  const artifact = await deps.storageService.readArtifact(storageKey);
+
+  if (typeof artifact === 'string') {
+    return artifact;
+  }
+
+  if (artifact && typeof artifact === 'object') {
+    const record = artifact as Record<string, unknown>;
+    const candidates = [record.sourceText, record.summary_text, record.text];
+    const text = candidates.find((value) => typeof value === 'string');
+    if (typeof text === 'string') {
+      return text;
+    }
+  }
+
+  throw new Error('Source text unavailable for ingestion.');
+}
 
 export async function processIngestionJob(deps: AppDependencies, input: ProcessIngestionInput): Promise<void> {
   const now = deps.clock().toISOString();
@@ -25,7 +44,11 @@ export async function processIngestionJob(deps: AppDependencies, input: ProcessI
   });
 
   try {
-    const redactedMatchText = redactSensitiveText(input.sourceText);
+    const sourceText =
+      typeof input.sourceText === 'string' && input.sourceText.trim().length > 0
+        ? input.sourceText
+        : await loadSourceText(deps, ingestion.storageKey);
+    const redactedMatchText = redactSensitiveText(sourceText);
     const matchText = redactedMatchText.text.trim();
     if (matchText.length === 0) {
       throw new Error('Match text is empty after redaction.');

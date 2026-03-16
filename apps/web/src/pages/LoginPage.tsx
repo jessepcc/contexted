@@ -1,3 +1,4 @@
+import { Link } from '@tanstack/react-router';
 import { useState } from 'react';
 import type { FormEvent, ReactElement } from 'react';
 import { motion } from 'motion/react';
@@ -128,6 +129,18 @@ export function LoginPage(): ReactElement {
               'Send me the link'
             )}
           </Button>
+
+          <p className="text-center text-xs leading-relaxed text-text-muted">
+            By signing up, you agree to our{' '}
+            <Link to="/terms" className="font-medium text-accent-ink underline decoration-accent/35 underline-offset-4 hover:text-accent">
+              Terms of Service
+            </Link>{' '}
+            and{' '}
+            <Link to="/privacy" className="font-medium text-accent-ink underline decoration-accent/35 underline-offset-4 hover:text-accent">
+              Privacy Policy
+            </Link>
+            .
+          </p>
         </form>
       </motion.div>
     </PageShell>

@@ -2,11 +2,17 @@
   "name": "@contexted/api-worker",
   "version": "0.1.0",
   "private": true,
+  "description": "Contexted API worker for intake, matching, reveals, and chat",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jessepcc/contexted.git"
+  },
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "dev": "npm run build --prefix ../../packages/shared && tsc -p tsconfig.json && node --env-file=../../.env dist/apps/api-worker/src/dev-server.js",
+    "dev": "npm run build --prefix ../../packages/shared && tsc -p tsconfig.json && node dist/apps/api-worker/src/dev-server.js",
     "dev:test": "npm run build --prefix ../../packages/shared && tsc -p tsconfig.json && node --env-file=../../.env.test dist/apps/api-worker/src/dev-server.js",
     "dev:prod": "npm run build --prefix ../../packages/shared && tsc -p tsconfig.json && node --env-file=../../.env.production dist/apps/api-worker/src/dev-server.js",
     "build": "tsc -p tsconfig.json",

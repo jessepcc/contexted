@@ -10,11 +10,11 @@ import { usePolling } from '../polling.js';
 import { useReducedMotion } from '../hooks/useDelight.js';
 import { clearActiveJobId, getActiveJobId } from '../intakeDraft.js';
 
-const PRIVACY_STEPS = [
-  'Names and specifics softened',
+const PROCESSING_STEPS = [
+  'Obvious direct identifiers softened',
   'Memory excerpt mapped into themes',
-  'Looking for resonance in this drop',
-  'Raw data gone for good',
+  'Matching profile generated',
+  'Queued for the next drop',
 ] as const;
 
 const ROTATING_MESSAGES = [
@@ -131,7 +131,7 @@ export function ProcessingPage(): ReactElement {
             <RotatingText texts={ROTATING_MESSAGES} intervalMs={3500} />
           </h1>
           <p className="text-sm text-text-secondary" aria-live="polite">
-            We read the memory you brought in, map the themes, then drop the raw text.
+            We redact obvious direct identifiers, map the themes, and prepare your matching profile.
           </p>
         </div>
 
@@ -162,7 +162,7 @@ export function ProcessingPage(): ReactElement {
 
         {/* Privacy timeline */}
         <div className="flex w-full flex-col gap-3">
-          {PRIVACY_STEPS.map((label, i) => {
+          {PROCESSING_STEPS.map((label, i) => {
             const stepIndex = i + 1;
             const done = completedSteps >= stepIndex;
             const active = completedSteps === i && completedSteps < 4;

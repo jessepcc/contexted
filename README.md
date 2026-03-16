@@ -1,65 +1,97 @@
-# Contexted MVP
+# Contexted
 
-Production-oriented MVP scaffold for Contexted, implemented as a TypeScript workspace. The current MVP includes intake, scheduled drops, reveal/chat flows, and a private-invite acquisition loop that rewards successful referred signups with earlier consideration in future drops.
+Peer matching powered by AI memory — the living context your AI assistant has built about you.
 
-## Workspace
+## What is this?
 
-- `apps/api-worker`: Hono API implementing MVP endpoint contracts.
-- `apps/web`: React + TanStack Router PWA routes and client state machine.
-- `packages/shared`: Shared schemas, enums, matching logic, sanitization.
-- `packages/db`: Supabase/Postgres schema migration and RLS policies.
-- `docs`: Focused product and implementation notes.
+Contexted is a peer-matching experiment. You paste a memory export from ChatGPT or Claude, the system redacts obvious direct identifiers, reads it for recurring themes and tone, and stores a redacted matching profile plus derived summary. Matches happen in scheduled batch "drops." Each match surfaces shared synergy points and a mutual confession prompt — once both sides respond, an anonymous chat opens.
 
-## Quick Start
+The idea: the accumulated understanding your AI has about you is a surprisingly rich signal for finding people you'd actually connect with.
 
-1. `cp .env.example .env`
-2. `npm install`
-3. `npm run test:coverage`
+**Current state:** alpha — actively being built and tested.
 
-Use `APP_MODE=memory` for local API smoke tests. For staging/production mode, configure Supabase, Postgres, queue dispatch, and AI provider keys from `.env.example`.
+## Tech Stack
 
-## Database
+- **TypeScript** end-to-end (strict mode)
+- **Hono** — API framework (runs on Cloudflare Workers, Node locally)
+- **React 19** + TanStack Router — SPA frontend
+- **Supabase** — Postgres + Auth + Storage
+- **pgvector** — vector similarity for matching
+- **Zod** — shared validation schemas between API and frontend
+- **Vite** — frontend build and dev server
 
-- Apply all migrations in order:
-  - `packages/db/migrations/001_init.sql`
-  - `packages/db/migrations/002_match_text_and_history_idx.sql`
-  - `packages/db/migrations/003_referrals_and_priority_credits.sql`
-- The schema includes RLS on sensitive user-facing tables, queue/matching indexes, and invite/referral tables for the private-invite loop.
+## Project Structure
 
-## Private Invites
-
-- Authenticated users can fetch their invite state with `GET /v1/referrals/me`.
-- Invite recipients can claim an invite with `POST /v1/referrals/claim`.
-- Invite-link opens can be tracked with `POST /v1/referrals/:invite_code/click`.
-- Qualification happens when a claimed invitee successfully reaches `/v1/waitlist/enroll`.
-- A successful referral grants one priority credit to the inviter and one to the invitee, capped to two landed referrals per inviter in the current alpha.
-- Matching remains compatibility-first; priority credits only affect first-pass queue ordering and are consumed only after a drop publishes successfully.
-
-For the full flow, API contract, queue semantics, and frontend auth handoff behavior, see `docs/private-invites.md`.
-
-## Runtime Integrations
-
-- Auth: Supabase magic link (`SUPABASE_URL`, `SUPABASE_ANON_KEY`).
-- Storage: Supabase signed uploads and artifact reads (`SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_STORAGE_BUCKET`).
-- Queue: HTTP dispatcher endpoint for Cloudflare Queue fan-out (`QUEUE_DISPATCH_URL`, `QUEUE_DISPATCH_TOKEN`).
-- AI: OpenAI embeddings plus OpenAI/Anthropic LLM fallback (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `LLM_PRIMARY`).
-- Matching: configurable top-K candidate retrieval plus protected internal drop trigger (`MATCH_TOP_K`, `INTERNAL_ADMIN_TOKEN`).
-
-## Safety Controls
-
-- Mutating APIs use strict JSON schema validation and semantic state checks.
-- Raw upload content is modeled as storage-only boundary with TTL metadata.
-- Idempotency storage is enforced via `idempotency_keys`.
-- CI runs `npm run safety:scan` to block high-risk destructive command patterns in automation/docs paths.
-
-### Destructive Command Guard Setup
-
-Install reference guard locally (recommended in addition to repo scan):
-
-```bash
-curl -fsSL "https://raw.githubusercontent.com/Dicklesworthstone/destructive_command_guard/main/install.sh?$(date +%s)" | bash -s -- --easy-mode
+```
+apps/
+  api-worker/      Hono REST API (Cloudflare Workers / Node locally)
+  web/             React 19 SPA (TanStack Router, Vite)
+packages/
+  shared/          Zod schemas, enums, state machine, matching algorithms
+  db/              SQL migrations (applied to Supabase)
+docs/              Product and implementation notes
 ```
 
-## CI
+## Getting Started
 
-GitHub Actions workflow runs typecheck + coverage on each PR and push.
+### Quick start (zero external deps)
+
+```bash
+npm install
+cd apps/api-worker && npm run dev    # API in-memory mode
+cd apps/web && npm run dev           # Vite dev server (separate terminal)
+```
+
+The API runs in `APP_MODE=memory` by default — all data lives in-process, no database or services needed, and no local `.env` file is required. The web dev server proxies API calls automatically.
+
+### Running with Supabase (full pipeline)
+
+For the complete matching pipeline (embeddings, vector search, drops, chat), you need:
+
+- a Supabase project
+- an OpenAI API key for embeddings
+- optionally an Anthropic API key for fallback LLM calls
+- a local `.env` copied from `.env.example`
+
+The Node dev server now falls back to in-process ingestion when `QUEUE_DISPATCH_URL` and `QUEUE_DISPATCH_TOKEN` are unset, so pasted-memory intake works locally without extra queue infrastructure. The Cloudflare Worker deployment path still expects queue wiring.
+
+1. Copy `.env.example` to `.env` and fill in your Supabase credentials
+2. Apply migrations: `npm run db:migrate:test`
+3. Run the API in postgres mode: `cd apps/api-worker && APP_MODE=postgres npm run dev`
+
+## Data Handling
+
+- The landing page redacts obvious direct identifiers before it saves a draft locally or submits intake.
+- The backend generates a redacted matching text, derived summary, vibe-check copy, and embedding.
+- The project currently stores the redacted matching text and summary as part of the profile used for future drops.
+- If you plan to run this with real users, review retention and privacy behavior before production use.
+
+### Running tests
+
+```bash
+npm run test              # all tests
+npm run test:coverage     # with 60% coverage threshold
+npm run typecheck         # type checking across all packages
+```
+
+## How Matching Works
+
+1. **Intake** — user pastes their AI memory; the system redacts obvious direct identifiers, extracts themes, and generates a vector embedding
+2. **Drop** — a scheduled batch job retrieves top-K candidates by vector similarity, then runs an LLM pass for compatibility scoring
+3. **Reveal** — matched pairs see synergy points and a shared confession prompt
+4. **Chat** — once both sides respond to the prompt, an anonymous chat channel opens
+
+Matching is compatibility-first. The system also includes a private-invite loop where successful referrals earn earlier consideration in future drops, but referral priority never overrides match quality.
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, testing, and PR guidelines.
+
+## Community
+
+- [Code of Conduct](CODE_OF_CONDUCT.md)
+- [Security Policy](SECURITY.md)
+
+## License
+
+[MIT](LICENSE)

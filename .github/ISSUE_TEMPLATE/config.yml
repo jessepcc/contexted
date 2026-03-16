@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security contact
+    url: https://github.com/jessepcc/contexted/issues/new?title=Security%20contact%20requested
+    about: Use this only to request a private security reporting channel. Do not include vulnerability details.
+  - name: Moderator contact
+    url: https://github.com/jessepcc/contexted/issues/new?title=Moderator%20contact%20requested
+    about: Use this to request a private conduct or moderation conversation.

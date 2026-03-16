@@ -2,17 +2,23 @@
   "name": "contexted",
   "private": true,
   "version": "0.1.0",
+  "description": "Peer matching based on AI memory",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jessepcc/contexted.git"
+  },
   "type": "module",
   "workspaces": [
     "apps/*",
     "packages/*"
   ],
   "scripts": {
-    "build": "npm run -ws build",
-    "test": "npm run -ws test",
-    "test:coverage": "npm run -ws test:coverage",
-    "typecheck": "npm run -ws typecheck",
-    "lint": "npm run -ws lint",
+    "build": "npm run --workspaces build",
+    "test": "npm run --workspaces test",
+    "test:coverage": "npm run --workspaces test:coverage",
+    "typecheck": "npm run --workspaces typecheck",
+    "lint": "npm run --workspaces lint",
     "safety:scan": "bash scripts/dcg-scan.sh",
     "db:migrate:test": "bash scripts/apply-migrations.sh .env.test",
     "db:migrate:prod": "bash scripts/apply-migrations.sh .env.production"

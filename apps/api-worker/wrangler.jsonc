@@ -6,6 +6,7 @@
   "compatibility_flags": ["nodejs_compat"],
 
   // Hyperdrive binding for Postgres connection pooling
+  // Replace this ID with your own Hyperdrive configuration
   "hyperdrive": [
     {
       "binding": "HYPERDRIVE",

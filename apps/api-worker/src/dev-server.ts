@@ -37,15 +37,15 @@ if (process.env.APP_MODE === 'memory') {
     });
 
     // Test accounts for E2E dogfooding (JWT-like tokens so getViewerIdFromToken works)
-    const token1 = devJwt('00000000-0000-4000-8000-000000000011', 'jessechowpc@gmail.com');
-    const token2 = devJwt('00000000-0000-4000-8000-000000000012', 'jessepcc@connect.hku.hk');
+    const token1 = devJwt('00000000-0000-4000-8000-000000000011', 'alice@contexted.local');
+    const token2 = devJwt('00000000-0000-4000-8000-000000000012', 'bob@contexted.local');
     deps.authService.seedToken(token1, {
       id: '00000000-0000-4000-8000-000000000011',
-      email: 'jessechowpc@gmail.com'
+      email: 'alice@contexted.local'
     });
     deps.authService.seedToken(token2, {
       id: '00000000-0000-4000-8000-000000000012',
-      email: 'jessepcc@connect.hku.hk'
+      email: 'bob@contexted.local'
     });
   }
 

@@ -2,6 +2,12 @@
   "name": "@contexted/web",
   "version": "0.1.0",
   "private": true,
+  "description": "Contexted web client for memory intake, waiting room, reveals, and chat",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jessepcc/contexted.git"
+  },
   "type": "module",
   "scripts": {
     "dev": "npm run build --prefix ../../packages/shared && vite",

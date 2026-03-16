@@ -297,8 +297,8 @@ export function LandingPage(): ReactElement {
                   MEMORY FOR MATCHING
                 </label>
                 <p id="memory-help" className="text-sm leading-relaxed text-text-secondary">
-                  Paste the memory you want matched on. We read it for recurring threads, then discard the raw text
-                  after processing.
+                  Paste the memory you want matched on. We redact obvious direct identifiers, look for recurring
+                  threads, and turn it into matching text plus a summary.
                 </p>
                 <textarea
                   id="memory-text"

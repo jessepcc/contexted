@@ -2,6 +2,12 @@
   "name": "@contexted/shared",
   "version": "0.1.0",
   "private": true,
+  "description": "Shared schemas, state machines, sanitization, and matching logic for Contexted",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jessepcc/contexted.git"
+  },
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
