@@ -4,6 +4,7 @@ import { createApp } from './app.js';
 import { createRuntimeDependencies } from './factories.js';
 import { InMemoryRepository } from './in-memory-repository.js';
 import { processIngestionJob } from './services/ingestion-service.js';
+import { seedDemoData, type DemoMode } from './demo-seed.js';
 
 process.env.APP_MODE = process.env.APP_MODE ?? 'memory';
 
@@ -47,6 +48,11 @@ if (process.env.APP_MODE === 'memory') {
       id: '00000000-0000-4000-8000-000000000012',
       email: 'bob@contexted.local'
     });
+  }
+
+  const demoMode = process.env.DEMO_MODE as DemoMode | undefined;
+  if (demoMode && deps.repository instanceof InMemoryRepository) {
+    await seedDemoData(deps.repository, demoMode);
   }
 
   if (deps.queueService instanceof InMemoryQueueService) {

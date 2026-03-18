@@ -42,6 +42,8 @@ cd apps/api-worker && npm run dev    # API in-memory mode
 cd apps/web && npm run dev           # Vite dev server (separate terminal)
 ```
 
+If local dev ports get wedged, run `npm run dev:clean` from the repo root before restarting. The cleanup script clears the repo's default API and Vite ports so the web app stays on `5173` and the API stays on `8787`.
+
 The API runs in `APP_MODE=memory` by default — all data lives in-process, no database or services needed, and no local `.env` file is required. The web dev server proxies API calls automatically.
 
 In memory mode, the app does not send real email. After you request a magic link, the UI shows a one-device local sign-in link instead.
