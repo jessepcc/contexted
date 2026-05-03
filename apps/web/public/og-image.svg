@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#faf7f2"/>
+      <stop offset="100%" stop-color="#f1e9dc"/>
+    </linearGradient>
+    <radialGradient id="blob" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#D4714E" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="#D4714E" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <circle cx="200" cy="120" r="260" fill="url(#blob)"/>
+  <circle cx="1020" cy="520" r="280" fill="url(#blob)"/>
+  <text x="600" y="280" text-anchor="middle"
+        font-family="Sora, Georgia, serif" font-size="110" font-weight="700"
+        fill="#D4714E" letter-spacing="-3">
+    Contexted
+  </text>
+  <text x="600" y="360" text-anchor="middle"
+        font-family="Inter, system-ui, sans-serif" font-size="34" font-weight="400"
+        fill="#3a342c" letter-spacing="-0.5">
+    Discover connection through shared context.
+  </text>
+  <text x="600" y="480" text-anchor="middle"
+        font-family="Inter, system-ui, sans-serif" font-size="22" font-weight="500"
+        fill="#8a7e6d" letter-spacing="2">
+    WORDS OVER FACES
+  </text>
+</svg>
