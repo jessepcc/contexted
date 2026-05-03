@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#D4714E" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+
+    <title>Why context beats photos for real compatibility — Contexted</title>
+    <meta name="description" content="Photos are a poor predictor of whether two people will keep talking. Shared context — values, communication style, the way someone holds a question — is closer to the thing." />
+    <link rel="canonical" href="https://contexted.app/blog/context-over-photos" />
+
+    <meta property="og:title" content="Why context beats photos for real compatibility" />
+    <meta property="og:description" content="Photos optimize for the wrong signal. Context, tone, and AI memory are closer to what actually predicts connection." />
+    <meta property="og:type" content="article" />
+    <meta property="og:url" content="https://contexted.app/blog/context-over-photos" />
+    <meta property="og:image" content="https://contexted.app/og-image.png" />
+    <meta property="og:site_name" content="Contexted" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Why context beats photos for real compatibility" />
+    <meta name="twitter:description" content="Photos optimize for the wrong signal. Context, tone, and AI memory are closer to what actually predicts connection." />
+    <meta name="twitter:image" content="https://contexted.app/og-image.png" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@400;600;700&display=swap" rel="stylesheet" />
+
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Article",
+      "headline": "Why context beats photos for real compatibility",
+      "description": "Photos optimize for the wrong signal. Context, tone, and AI memory are closer to what actually predicts connection.",
+      "image": "https://contexted.app/og-image.png",
+      "author": { "@type": "Organization", "name": "Contexted" },
+      "publisher": {
+        "@type": "Organization",
+        "name": "Contexted",
+        "logo": { "@type": "ImageObject", "url": "https://contexted.app/favicon.svg" }
+      },
+      "datePublished": "2026-05-03",
+      "mainEntityOfPage": "https://contexted.app/blog/context-over-photos"
+    }
+    </script>
+
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Are photos useless in matching?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Photos aren't useless. They are just a thin signal that gets weighted as if it were a thick one. They predict instant attraction better than they predict whether two people will keep talking a month later, and matching products tend to confuse the two."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What does AI memory actually contribute?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "An AI assistant accumulates a long, low-stakes record of how someone thinks — what they reread, what they wrestle with, the metaphors they use. That record is more honest than a profile because it wasn't written to be seen, which makes it a useful starting point for matching on context."
+          }
+        }
+      ]
+    }
+    </script>
+
+    <style>
+      * { box-sizing: border-box; }
+      html, body { margin: 0; padding: 0; }
+      body {
+        font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        background: #faf7f2;
+        color: #2d2820;
+        line-height: 1.75;
+        -webkit-font-smoothing: antialiased;
+      }
+      a { color: #D4714E; text-decoration: none; border-bottom: 1px solid rgba(212, 113, 78, 0.25); transition: border-color 0.2s; }
+      a:hover { border-bottom-color: #D4714E; }
+      header.site {
+        max-width: 680px;
+        margin: 0 auto;
+        padding: 2.5rem 1.5rem 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      header.site .brand {
+        font-family: 'Sora', Georgia, serif;
+        font-weight: 700;
+        font-size: 1.25rem;
+        color: #D4714E;
+        border-bottom: none;
+      }
+      header.site nav a {
+        margin-left: 1.5rem;
+        font-size: 0.95rem;
+        color: #6b6358;
+        border-bottom: none;
+      }
+      header.site nav a:hover { color: #D4714E; }
+      article {
+        max-width: 680px;
+        margin: 0 auto;
+        padding: 4rem 1.5rem 5rem;
+      }
+      .meta {
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        color: #8a7e6d;
+        margin: 0 0 1rem;
+      }
+      h1 {
+        font-family: 'Sora', Georgia, serif;
+        font-size: clamp(2.25rem, 5vw, 3rem);
+        font-weight: 700;
+        line-height: 1.1;
+        letter-spacing: -0.02em;
+        color: #2d2820;
+        margin: 0 0 1.5rem;
+      }
+      .lede {
+        font-size: 1.2rem;
+        color: #5a5246;
+        margin: 0 0 3rem;
+        line-height: 1.6;
+      }
+      h2 {
+        font-family: 'Sora', Georgia, serif;
+        font-size: 1.4rem;
+        font-weight: 600;
+        color: #D4714E;
+        margin: 3rem 0 1rem;
+        letter-spacing: -0.01em;
+      }
+      p { margin: 0 0 1.25rem; }
+      .pull {
+        font-family: 'Sora', Georgia, serif;
+        font-size: 1.15rem;
+        font-style: italic;
+        color: #6b6358;
+        border-left: 2px solid #D4714E;
+        padding: 0.5rem 0 0.5rem 1.25rem;
+        margin: 2.25rem 0;
+      }
+      .end {
+        margin-top: 3rem;
+        padding: 1.75rem;
+        background: rgba(212, 113, 78, 0.06);
+        border-radius: 12px;
+        font-size: 1rem;
+      }
+      footer {
+        max-width: 680px;
+        margin: 0 auto;
+        padding: 2rem 1.5rem 3rem;
+        font-size: 0.875rem;
+        color: #8a7e6d;
+        border-top: 1px solid rgba(212, 113, 78, 0.15);
+      }
+      footer a { color: #6b6358; border-bottom: none; }
+      footer a:hover { color: #D4714E; }
+      footer .row { display: flex; flex-wrap: wrap; gap: 1.25rem; margin-top: 0.75rem; }
+    </style>
+  </head>
+  <body>
+    <header class="site">
+      <a href="/" class="brand">Contexted</a>
+      <nav>
+        <a href="/about">About</a>
+        <a href="/blog">Blog</a>
+      </nav>
+    </header>
+
+    <article>
+      <p class="meta">Field notes · 2026</p>
+      <h1>Why context beats photos for real compatibility</h1>
+      <p class="lede">Photos predict the first second of attention well. They predict almost nothing about the second month of a conversation. Most of what we built around online connection is optimized for the first second.</p>
+
+      <h2>The thin signal</h2>
+      <p>A photo gives you a face, a posture, a setting, and very little else. You can guess at age, taste, maybe income. You cannot guess at how someone argues, how they apologize, what they reread, or what makes them go quiet. Those are the things that decide whether two people keep talking.</p>
+      <p>The product implication is simple. If a matching surface leans hard on photographs, it is implicitly betting that the parts of a person that fit on a phone screen are the parts that matter. They mostly aren't.</p>
+      <p>This isn't a moral claim. Photos are not useless. They are just a thin signal that gets weighted as if it were a thick one — which is partly an interface accident. Photos rank cleanly. They produce a stack you can swipe. The economics of the swipe stack pulled the whole category toward the signal that matched the gesture, not the signal that matched the goal.</p>
+
+      <h2>What the swipe trains you to do</h2>
+      <p>Repeat any small action a few hundred times and it stops being a choice. Swiping is no different. The interface trains a habit of fast judgment, then keeps feeding it. The cost of a no is approximately zero. The cost of a yes is barely higher.</p>
+      <p>The result is a population that is great at scanning faces and bad at reading sentences. People talk about "swipe fatigue" as if it were a mood. It is closer to a learned style of attention. You cannot easily turn it off when the conversation starts.</p>
+      <p>It is worth noticing how rarely the conversation does start. Even on the largest dating products, a measured majority of matches never produce a single message exchange. The swipe creates an outcome that looks like progress but isn't.</p>
+
+      <h2>What context actually carries</h2>
+      <p>Context is the slow signal. It is the recurring themes someone returns to. It is the way they phrase a complaint. It is what they want a long answer to and what they want short. It is the particular shape of their humor.</p>
+      <p>Most of what we casually call "chemistry" is downstream of these. Two people whose attention rests on the same kinds of problems will keep finding things to say. Two people whose attention rests on different things will run out of fuel by the second week, regardless of how good the photos were.</p>
+      <p>This is not new. Decades of relationship research keep finding the same pattern: similarity in values, communication style, and outlook predicts long-term satisfaction better than physical compatibility does. The harder part has always been measuring the first set without making people fill out a questionnaire that flattens what it asks about.</p>
+
+      <p class="pull">The thing that actually predicts whether two people will keep talking is much closer to how they think than to how they look.</p>
+
+      <h2>Why AI memory changes the measurement problem</h2>
+      <p>People are bad at writing about themselves. The genre is unnatural. A profile asks for self-description in a context where you are also being judged, which guarantees a performance. What you get back is a set of poses, not a person.</p>
+      <p>An assistant — ChatGPT, Claude, anything you've used for months — accumulates a different kind of record. It is long, low-stakes, and not written to be seen. You ask it for help with a hard email. You think out loud about a project. You wrestle with a friendship over weeks. The trace that builds up is closer to a journal than a bio.</p>
+      <p>That trace is what we mean by AI memory. It is the first source of context-rich self-description that doesn't require a person to perform self-description. For a matching product, it is the difference between asking someone "what do you care about" and watching what they actually return to.</p>
+
+      <h2>What we read for, and what we throw away</h2>
+      <p>You don't want a system that holds your transcripts. We don't want one either. So we read the export once, distill it into a few signals — themes, tone, the texture of how you think — and discard the raw text. The signals are what get matched against. You can read them, edit them, delete them.</p>
+      <p>The signals are abstract on purpose. They are the kind of thing that another person could plausibly recognize themselves in, not a fingerprint. Two engineers who both keep returning to questions about what work is for can be matched on that without either of them having to publish the conversations that made the signal visible.</p>
+
+      <h2>What context-based signals look like in practice</h2>
+      <p>A few examples of what the slow signal can carry that a photo cannot.</p>
+      <p>The first is preoccupation. People circle back to the same handful of questions for years. Some of them are worth circling back to. Two people circling the same one will recognize each other faster than they will recognize anything from a picture.</p>
+      <p>The second is register. Some people write the way they talk. Some people write more carefully than they talk. Some people make jokes when they are nervous. Register is hard to fake over a long enough trace, and it predicts whether a real conversation will feel comfortable.</p>
+      <p>The third is the shape of curiosity. There is a real difference between someone who wants the answer and someone who wants the better question. Both are fine. They are not always compatible.</p>
+      <p>The fourth is care. The way someone writes about people they love is one of the most legible signals there is. It survives almost any prompt.</p>
+
+      <h2>Why this matters now, specifically</h2>
+      <p>There is a generation that already lives substantially in language. They draft their sentences with help. They keep notebooks in chat windows. They externalize thinking the way an earlier generation externalized photos. For them, "what's the memory my AI has built with me" is a coherent question with a real answer.</p>
+      <p>If the most honest record of someone is now written instead of photographed, the matching surface that suits them is also written. That is the bet under <a href="/about">Contexted</a>: that for the AI-native, words are not a fallback when photos fail. They are the better signal in the first place.</p>
+      <p>This doesn't mean photos go away. It means they belong later in the arc. After two people have already recognized each other on context, a face is a small, easy reveal — not a gate.</p>
+
+      <h2>What we are not claiming</h2>
+      <p>We are not claiming that a context-based match is automatically a romantic one. Most of what makes two people enjoy each other isn't romantic. It is closer to friendship, or to the recognition you sometimes feel reading someone you've never met.</p>
+      <p>We are not claiming this scales like a swipe stack. It shouldn't. The whole point is to slow down a process that got too fast.</p>
+      <p>And we are not claiming AI memory is a complete portrait. It isn't. It is just a better starting point than a profile written under observation.</p>
+
+      <div class="end">
+        Contexted is invite-only and runs in batched drops. If this is the kind of experiment you want to be early to, you can <a href="/">join the waitlist</a>, or read more about how we think on the <a href="/blog">blog</a>.
+      </div>
+    </article>
+
+    <footer>
+      <div>© Contexted</div>
+      <div class="row">
+        <a href="/">Home</a>
+        <a href="/about">About</a>
+        <a href="/blog">Blog</a>
+        <a href="/privacy">Privacy</a>
+      </div>
+    </footer>
+  </body>
+</html>

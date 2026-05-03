@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#D4714E" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+
+    <title>Contexted Blog — Notes on AI-mediated connection</title>
+    <meta name="description" content="Essays and field notes on context-based matching, AI memory, and what real compatibility looks like when photos aren't part of the equation." />
+    <link rel="canonical" href="https://contexted.app/blog" />
+
+    <meta property="og:title" content="Contexted Blog — Notes on AI-mediated connection" />
+    <meta property="og:description" content="Essays and field notes on context-based matching and AI memory." />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://contexted.app/blog" />
+    <meta property="og:image" content="https://contexted.app/og-image.png" />
+    <meta property="og:site_name" content="Contexted" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Contexted Blog — Notes on AI-mediated connection" />
+    <meta name="twitter:description" content="Essays and field notes on context-based matching and AI memory." />
+    <meta name="twitter:image" content="https://contexted.app/og-image.png" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@400;600;700&display=swap" rel="stylesheet" />
+
+    <style>
+      * { box-sizing: border-box; }
+      html, body { margin: 0; padding: 0; }
+      body {
+        font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        background: #faf7f2;
+        color: #2d2820;
+        line-height: 1.7;
+        -webkit-font-smoothing: antialiased;
+      }
+      a { color: #D4714E; text-decoration: none; border-bottom: 1px solid rgba(212, 113, 78, 0.25); transition: border-color 0.2s; }
+      a:hover { border-bottom-color: #D4714E; }
+      header.site {
+        max-width: 720px;
+        margin: 0 auto;
+        padding: 2.5rem 1.5rem 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      header.site .brand {
+        font-family: 'Sora', Georgia, serif;
+        font-weight: 700;
+        font-size: 1.25rem;
+        color: #D4714E;
+        border-bottom: none;
+      }
+      header.site nav a {
+        margin-left: 1.5rem;
+        font-size: 0.95rem;
+        color: #6b6358;
+        border-bottom: none;
+      }
+      header.site nav a:hover { color: #D4714E; }
+      main {
+        max-width: 720px;
+        margin: 0 auto;
+        padding: 4rem 1.5rem 6rem;
+      }
+      h1 {
+        font-family: 'Sora', Georgia, serif;
+        font-size: clamp(2.25rem, 5vw, 3rem);
+        font-weight: 700;
+        line-height: 1.1;
+        letter-spacing: -0.02em;
+        color: #2d2820;
+        margin: 0 0 1rem;
+      }
+      .lede {
+        font-size: 1.15rem;
+        color: #5a5246;
+        margin: 0 0 3rem;
+      }
+      .post-list { list-style: none; padding: 0; margin: 0; }
+      .post {
+        padding: 2rem 0;
+        border-top: 1px solid rgba(212, 113, 78, 0.15);
+      }
+      .post:last-child { border-bottom: 1px solid rgba(212, 113, 78, 0.15); }
+      .post .date {
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: #8a7e6d;
+        margin: 0 0 0.5rem;
+      }
+      .post h2 {
+        font-family: 'Sora', Georgia, serif;
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin: 0 0 0.75rem;
+        line-height: 1.25;
+      }
+      .post h2 a { color: #2d2820; border-bottom: none; }
+      .post h2 a:hover { color: #D4714E; }
+      .post p { margin: 0; color: #5a5246; }
+      footer {
+        max-width: 720px;
+        margin: 0 auto;
+        padding: 2rem 1.5rem 3rem;
+        font-size: 0.875rem;
+        color: #8a7e6d;
+        border-top: 1px solid rgba(212, 113, 78, 0.15);
+      }
+      footer a { color: #6b6358; border-bottom: none; }
+      footer a:hover { color: #D4714E; }
+      footer .row { display: flex; flex-wrap: wrap; gap: 1.25rem; margin-top: 0.75rem; }
+    </style>
+  </head>
+  <body>
+    <header class="site">
+      <a href="/" class="brand">Contexted</a>
+      <nav>
+        <a href="/about">About</a>
+        <a href="/blog">Blog</a>
+      </nav>
+    </header>
+
+    <main>
+      <h1>Field notes.</h1>
+      <p class="lede">Essays and small observations from building Contexted — what we've found out about matching people on context instead of appearance, what AI memory is actually useful for, and why we keep choosing the slower thing.</p>
+
+      <p>The blog is intentionally unhurried. We publish when we have something we believe, not when a calendar says it's time. Expect short pieces about design choices, longer ones about why the conventional wisdom around online connection looks brittle to us, and the occasional dispatch from a drop that surprised us.</p>
+
+      <p>If you want a sense of where we're starting, the first piece below is the closest thing we have to a thesis.</p>
+
+      <ul class="post-list">
+        <li class="post">
+          <p class="date">2026 — First post</p>
+          <h2><a href="/blog/context-over-photos">Why context beats photos for real compatibility</a></h2>
+          <p>Photos optimize for the wrong signal. The thing that actually predicts whether two people will keep talking is much closer to how they think than to how they look — and AI memory is finally a tractable way to read that.</p>
+        </li>
+      </ul>
+    </main>
+
+    <footer>
+      <div>© Contexted</div>
+      <div class="row">
+        <a href="/">Home</a>
+        <a href="/about">About</a>
+        <a href="/privacy">Privacy</a>
+        <a href="/terms">Terms</a>
+      </div>
+    </footer>
+  </body>
+</html>
