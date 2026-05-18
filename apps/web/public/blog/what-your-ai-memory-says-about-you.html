@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#D4714E" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+
+    <title>What Your AI Memory Says About You — Contexted</title>
+    <meta name="description" content="Your ChatGPT or Claude isn't just remembering facts. It's building a mirror — and reading it for the first time is a strange, honest experience." />
+    <link rel="canonical" href="https://contexted.app/blog/what-your-ai-memory-says-about-you" />
+
+    <meta property="og:title" content="What Your AI Memory Says About You" />
+    <meta property="og:description" content="Your ChatGPT or Claude isn't just remembering facts. It's building a mirror." />
+    <meta property="og:type" content="article" />
+    <meta property="og:url" content="https://contexted.app/blog/what-your-ai-memory-says-about-you" />
+    <meta property="og:image" content="https://contexted.app/og-image.png" />
+    <meta property="og:site_name" content="Contexted" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="What Your AI Memory Says About You" />
+    <meta name="twitter:description" content="Your ChatGPT or Claude isn't just remembering facts. It's building a mirror." />
+    <meta name="twitter:image" content="https://contexted.app/og-image.png" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@400;600;700&display=swap" rel="stylesheet" />
+
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Article",
+      "headline": "What Your AI Memory Says About You",
+      "description": "Your ChatGPT or Claude isn't just remembering facts. It's building a mirror.",
+      "image": "https://contexted.app/og-image.png",
+      "author": { "@type": "Organization", "name": "Contexted" },
+      "publisher": {
+        "@type": "Organization",
+        "name": "Contexted",
+        "logo": { "@type": "ImageObject", "url": "https://contexted.app/favicon.svg" }
+      },
+      "datePublished": "2026-05-18",
+      "mainEntityOfPage": "https://contexted.app/blog/what-your-ai-memory-says-about-you"
+    }
+    </script>
+
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "What is AI memory, exactly?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "AI memory is not a transcript of your conversations. It is the synthesis — a pattern extracted from your exchanges over time. Modern assistants like Claude and ChatGPT store recurring themes, the texture of how you ask questions, and what you keep returning to. The result is closer to a behavioral portrait than a log."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How is AI memory different from a journal or social profile?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "A journal is written knowing you might read it. A profile is written knowing others will. Both involve deliberate self-presentation. AI memory was built without your editorial input — the assistant inferred what matters from what you returned to, not from what you announced. That makes it less of a performance and more of a portrait."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What does Contexted do with AI memory?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Contexted reads your memory export once, distills it into abstract signals — recurring themes, tone, the texture of how you hold a question — and then discards the raw text. The signals are what get matched against. You can review, edit, or delete them before any match happens."
+          }
+        }
+      ]
+    }
+    </script>
+
+    <style>
+      * { box-sizing: border-box; }
+      html, body { margin: 0; padding: 0; }
+      body {
+        font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        background: #faf7f2;
+        color: #2d2820;
+        line-height: 1.75;
+        -webkit-font-smoothing: antialiased;
+      }
+      a { color: #D4714E; text-decoration: none; border-bottom: 1px solid rgba(212, 113, 78, 0.25); transition: border-color 0.2s; }
+      a:hover { border-bottom-color: #D4714E; }
+      header.site {
+        max-width: 680px;
+        margin: 0 auto;
+        padding: 2.5rem 1.5rem 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      header.site .brand {
+        font-family: 'Sora', Georgia, serif;
+        font-weight: 700;
+        font-size: 1.25rem;
+        color: #D4714E;
+        border-bottom: none;
+      }
+      header.site nav a {
+        margin-left: 1.5rem;
+        font-size: 0.95rem;
+        color: #6b6358;
+        border-bottom: none;
+      }
+      header.site nav a:hover { color: #D4714E; }
+      article {
+        max-width: 680px;
+        margin: 0 auto;
+        padding: 4rem 1.5rem 5rem;
+      }
+      .meta {
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        color: #8a7e6d;
+        margin: 0 0 1rem;
+      }
+      h1 {
+        font-family: 'Sora', Georgia, serif;
+        font-size: clamp(2.25rem, 5vw, 3rem);
+        font-weight: 700;
+        line-height: 1.1;
+        letter-spacing: -0.02em;
+        color: #2d2820;
+        margin: 0 0 1.5rem;
+      }
+      .lede {
+        font-size: 1.2rem;
+        color: #5a5246;
+        margin: 0 0 3rem;
+        line-height: 1.6;
+      }
+      h2 {
+        font-family: 'Sora', Georgia, serif;
+        font-size: 1.4rem;
+        font-weight: 600;
+        color: #D4714E;
+        margin: 3rem 0 1rem;
+        letter-spacing: -0.01em;
+      }
+      p { margin: 0 0 1.25rem; }
+      .pull {
+        font-family: 'Sora', Georgia, serif;
+        font-size: 1.15rem;
+        font-style: italic;
+        color: #6b6358;
+        border-left: 2px solid #D4714E;
+        padding: 0.5rem 0 0.5rem 1.25rem;
+        margin: 2.25rem 0;
+      }
+      .end {
+        margin-top: 3rem;
+        padding: 1.75rem;
+        background: rgba(212, 113, 78, 0.06);
+        border-radius: 12px;
+        font-size: 1rem;
+      }
+      footer {
+        max-width: 680px;
+        margin: 0 auto;
+        padding: 2rem 1.5rem 3rem;
+        font-size: 0.875rem;
+        color: #8a7e6d;
+        border-top: 1px solid rgba(212, 113, 78, 0.15);
+      }
+      footer a { color: #6b6358; border-bottom: none; }
+      footer a:hover { color: #D4714E; }
+      footer .row { display: flex; flex-wrap: wrap; gap: 1.25rem; margin-top: 0.75rem; }
+    </style>
+  </head>
+  <body>
+    <header class="site">
+      <a href="/" class="brand">Contexted</a>
+      <nav>
+        <a href="/about">About</a>
+        <a href="/blog">Blog</a>
+      </nav>
+    </header>
+
+    <article>
+      <p class="meta">Field notes · 2026</p>
+      <h1>What Your AI Memory Says About You</h1>
+      <p class="lede">Your ChatGPT or Claude isn't just remembering facts. It's building a mirror. Most people never look.</p>
+
+      <h2>Most people don't read it</h2>
+      <p>If you've used ChatGPT or Claude for more than a few months with memory enabled, there is a document somewhere that contains a working summary of who you are.</p>
+      <p>Not your name. Not your location. The other things. The recurring preoccupations. The emotional texture of the questions you keep asking. The subjects you return to after finishing what you came in to do.</p>
+      <p>The feature is easy to find once you know to look. In Claude, it's labeled "what Claude knows about you." In ChatGPT, it lives in settings under memory. Most users who have it turned on have never opened it. And most of those who have, looked once and moved on.</p>
+      <p>That's understandable. It can be an unsettling thing to read. But it's worth sitting with, because what's in there is something genuinely rare: an honest record of how you think that you didn't write.</p>
+
+      <h2>What AI memory actually is</h2>
+      <p>The common assumption is that AI memory works like a transcript — a log of things you said, stored and retrieved. It isn't that.</p>
+      <p>What memory systems actually store is synthesis. The layer beneath the individual exchange. Your words get processed, and what the system retains is not the sentence you typed but the pattern it fits into. A recurring theme. A characteristic way of framing a question. An area of life that comes up often enough to flag.</p>
+      <p>This is why memory summaries read differently from conversations. A conversation is sequential. Memory is cumulative. It collapses months of exchanges into something closer to an impression — the kind of thing you might write in a letter to someone you've known for a year, not a record of the individual days.</p>
+      <p>Claude and ChatGPT both update these impressions continuously. Each new conversation gets read against the existing summary. Things that confirm or complicate the pattern get folded in. Things that were one-off get dropped. What remains is whatever proved durable enough to show up again.</p>
+      <p>The result is something closer to a behavioral portrait than a transcript. Not a record of what you said. A record of what you are.</p>
+
+      <h2>Why this record is different</h2>
+      <p>There are plenty of ways to describe yourself. Journals, bios, social profiles, therapy notes. They are all useful in different ways. But they share a quality that limits them: they were written with an audience in mind.</p>
+      <p>A journal knows you might reread it later. A social profile knows it will be evaluated. Even a therapy note has a context — the version of yourself you present in a room where you're trying to be honest. Every self-description involves some choice about what to include, how to frame it, what to lead with.</p>
+      <p>AI memory was built without that editorial layer. The assistant didn't ask you to describe yourself. It watched what you did — what you asked about, what you labored over, what you came back to — and assembled an impression from that. You weren't performing. You were just using a tool.</p>
+      <p>That difference in context changes what the record captures. Self-description tends to surface the self we aspire to or the self we want others to see. Behavioral records tend to surface the self that shows up when we're not thinking about it. The second one is usually more accurate.</p>
+
+      <p class="pull">You didn't write it to be seen. That makes it less of a performance and more of a portrait.</p>
+
+      <h2>What shows up</h2>
+      <p>Reading an AI memory for the first time, most people find a few consistent categories.</p>
+      <p>Values show up — not the ones you'd list if someone asked you directly, but the ones implied by what you argue about and what you defend without being asked. The things the assistant has learned to treat as settled because you've never negotiated them. If you've spent time in AI conversations pushing back on a particular framing again and again, that pattern is probably in the record somewhere.</p>
+      <p>Curiosities show up. Not as named interests, but as the threads you've followed across sessions without calling them a project. A career question you've approached from four different angles over six months. A relationship dynamic you kept returning to for analysis. A field you keep probing even though it has nothing to do with your work. These are the things you're actually interested in, not the things you'd put on a resume.</p>
+      <p>Anxieties show up — not as confessions, but as the shape of the reassurances you sought. The decision you've modeled three times. The question you've rephrased but kept asking. The area where you seem to need more processing time than elsewhere. You didn't disclose the anxiety; the pattern of reassurance-seeking made it visible anyway.</p>
+      <p>And register shows up. How long you make your questions. Whether you build toward conclusions or ask for them directly. Whether you hedge, and if so, on what kinds of topics. Whether your writing to the AI is terse when focused and expansive when uncertain, or the reverse. This is some of the most useful information in the summary, because it's the hardest to fake and the most predictive of how you'll communicate with another person.</p>
+
+      <h2>The uncanny moment</h2>
+      <p>There's a specific quality to the experience of reading it for the first time. Most people describe something between recognition and surprise.</p>
+      <p>The recognition is familiar enough: "yes, that's accurate." But the surprise is in the specific shape of the accuracy. Not that the AI got your profession right — that requires one conversation. But that it noticed the pattern of questions you didn't realize you were repeating. The recurring subject you hadn't named as recurring. The way you approach a particular category of problem differently from all the others.</p>
+      <p>"I didn't know I asked about that so much" is one version of the reaction. Another is quieter: just the fact of sitting with a document that feels more like you than most things you've written about yourself.</p>
+      <p>It isn't complete. Memory systems are trained to be helpful, not to be analysts. They smooth things. They miss registers that didn't fit the patterns they were looking for. They occasionally surface things that feel wrong in a way you can't quite explain. The portrait is real, but it is also approximate.</p>
+      <p>Still. Approximate portraits of a person are usually more informative than approximate photographs of one. And the thing that makes this portrait interesting is precisely that it wasn't composed. You can compose a photograph. You can't easily compose the pattern of what you've asked about over a year.</p>
+
+      <h2>What it means when two memories resonate</h2>
+      <p>If AI memory captures something real about how a person thinks — and it does, imperfectly, in the ways described above — then two people whose memories resonate are likely to recognize something in each other when they talk.</p>
+      <p>Not because they share a hobby. Shared hobbies are easy to list and often a coincidence. But because they hold a question the same way. Because their curiosity has a similar texture — the same willingness to leave something unsettled, or the same need to resolve it. Because the things they orbit are the same kinds of things.</p>
+      <p>This is different from "you both like hiking" or "you're both in tech." Those are categories. What we're describing is more like a disposition — the way someone approaches a hard problem, the register they use when they're actually engaged rather than performing engagement, the shape of the thinking they do when no one is evaluating them.</p>
+      <p>Two people can share a disposition without sharing interests. Two people can share interests without sharing a disposition. The first combination tends to produce better conversations.</p>
+      <p>The hypothesis Contexted is running is that AI memory is a tractable way to read for disposition — not perfectly, but better than a photograph and probably better than a questionnaire about what you value (since what you say you value and what your behavior implies you value often diverge). The memory sees the behavior. The profile sees the self-description. When the two conflict, the behavior is usually more informative.</p>
+
+      <h2>How Contexted uses it</h2>
+      <p>The intake is simple. You share a memory export or an excerpt from your AI assistant — Claude's "what it knows about you," ChatGPT's memory summary, as much or as little as you're comfortable with.</p>
+      <p>The system reads it once. It extracts a set of signals — recurring themes, tonal patterns, the texture of how you hold a question. Then it discards the raw text. You can review the extracted signals, edit them, delete them entirely. The signals are abstract by design: the kind of thing another person could plausibly recognize themselves in, not a fingerprint that could identify you.</p>
+      <p>What gets matched against is the signal layer, not the original text. No one gets access to your conversations. The portrait stays yours. What travels is only the abstraction you've approved.</p>
+      <p>Matches happen in batched drops, not in real time. There's no browsing, no queue to optimize, no inbox to manage between rounds. When a match happens, both people see what they share and get a prompt to respond to — a small, honest question chosen specifically for them. Once both respond, a limited conversation opens.</p>
+      <p>The pace is intentional. The goal isn't volume. It's the particular quality of connection that becomes possible when two people already recognize something in each other before the first sentence.</p>
+
+      <div class="end">
+        Contexted is invite-only and runs in batched drops — intentionally slow, intentionally quiet. If this essay made you curious about whether resonance at the level of context predicts something real, you can <a href="/">join the waitlist</a> at contexted.app.
+      </div>
+    </article>
+
+    <footer>
+      <div>© Contexted</div>
+      <div class="row">
+        <a href="/">Home</a>
+        <a href="/about">About</a>
+        <a href="/blog">Blog</a>
+        <a href="/privacy">Privacy</a>
+      </div>
+    </footer>
+  </body>
+</html>
