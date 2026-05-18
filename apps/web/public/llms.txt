@@ -1,0 +1,23 @@
+# Contexted
+
+A peer-matching experiment that connects people through shared context — the recurring themes, tone, and texture of how they think — read from their AI assistant memory (ChatGPT, Claude).
+
+## What it does
+- Users share their AI assistant's memory/context summary
+- Contexted analyzes communication patterns, values, curiosities, anxieties
+- Matches happen in scheduled batched drops
+- Each match surfaces shared synergy points and a mutual prompt
+- Anonymous chat opens once both sides answer the prompt
+- Invite-only with a referral loop earning earlier consideration in future drops
+
+## Core thesis
+Photos are a poor predictor of whether two people will keep talking. Shared context — values, communication style, the way someone holds a question — is closer to the thing.
+
+## Brand
+Warm, literate, tech-native. No photos, no swipes. "Words over faces."
+
+## Content
+- About: https://contexted.app/about
+- Blog: https://contexted.app/blog
+- Essay: Why context beats photos for real compatibility: https://contexted.app/blog/context-over-photos
+- Essay: What your AI memory says about you: https://contexted.app/blog/what-your-ai-memory-says-about-you
