@@ -3,9 +3,12 @@ import { createElement, useState } from 'react';
 import { AppContext } from './AppContext.js';
 import type { AppState } from './AppContext.js';
 import { RootLayout } from './components/RootLayout.js';
+import { LandingPage } from './pages/LandingPage.js';
 import { NotFoundPage } from './pages/NotFoundPage.js';
 
-const LandingPage = lazyRouteComponent(() => import('./pages/LandingPage.js'), 'LandingPage');
+// LandingPage is imported eagerly, not lazily. index.html ships a static copy of the
+// hero inside #root so crawlers without JS see real content; React clears that markup
+// on mount, and a lazy landing route would leave the page blank across the chunk fetch.
 const LoginPage = lazyRouteComponent(() => import('./pages/LoginPage.js'), 'LoginPage');
 const VerifyPage = lazyRouteComponent(() => import('./pages/VerifyPage.js'), 'VerifyPage');
 const PrivacyPage = lazyRouteComponent(() => import('./pages/PrivacyPage.js'), 'PrivacyPage');

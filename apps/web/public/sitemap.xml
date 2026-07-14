@@ -1,37 +1,50 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Only the public marketing surface belongs here. The auth routes and the signed-in app
+  funnel are noindex + disallowed in robots.txt, so they are deliberately absent.
+  /blog/ keeps its trailing slash: the bare /blog 308-redirects to it, and a sitemap
+  should list the URL that actually answers 200.
+-->
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://match.contexted.app/</loc>
+    <lastmod>2026-07-14</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://match.contexted.app/about</loc>
+    <lastmod>2026-07-14</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://match.contexted.app/blog</loc>
+    <loc>https://match.contexted.app/blog/</loc>
+    <lastmod>2026-07-14</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://match.contexted.app/blog/what-your-ai-memory-says-about-you</loc>
+    <lastmod>2026-07-14</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://match.contexted.app/blog/context-over-photos</loc>
+    <lastmod>2026-07-14</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://match.contexted.app/privacy</loc>
+    <lastmod>2026-07-14</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.3</priority>
   </url>
   <url>
     <loc>https://match.contexted.app/terms</loc>
+    <lastmod>2026-07-14</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.3</priority>
   </url>

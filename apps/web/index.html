@@ -8,51 +8,264 @@
     <link rel="manifest" href="/manifest.json" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@400;600;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Sora:wght@400;600;700&display=swap" rel="stylesheet" />
 
-    <title>Contexted — Discover connection through shared context</title>
-    <meta name="description" content="Contexted matches people through shared context and AI memory — not photos or swipes. A thoughtful experiment in what real compatibility looks like." />
+    <title>Contexted — Peer matching built on your AI's memory</title>
+    <meta name="description" content="Contexted matches people through the memory their AI assistant has built with them — recurring themes, values, and tone, not photos or swipes. Paste a ChatGPT or Claude memory excerpt and join a batched alpha drop." />
 
-    <meta property="og:title" content="Contexted — Discover connection through shared context" />
-    <meta property="og:description" content="AI-mediated matching through shared context. Words over faces." />
+    <meta property="og:title" content="Contexted — Peer matching built on your AI's memory" />
+    <meta property="og:description" content="Bring the memory your AI has of you. Get matched with a similar soul. No photos, no swipes." />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://match.contexted.app/" />
     <meta property="og:image" content="https://match.contexted.app/og-image.png" />
+    <meta property="og:image:alt" content="Contexted — words over faces" />
     <meta property="og:site_name" content="Contexted" />
+    <meta property="og:locale" content="en_US" />
 
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Contexted — Discover connection through shared context" />
-    <meta name="twitter:description" content="AI-mediated matching through shared context. Words over faces." />
+    <meta name="twitter:title" content="Contexted — Peer matching built on your AI's memory" />
+    <meta name="twitter:description" content="Bring the memory your AI has of you. Get matched with a similar soul. No photos, no swipes." />
     <meta name="twitter:image" content="https://match.contexted.app/og-image.png" />
 
     <link rel="canonical" href="https://match.contexted.app/" />
+    <link rel="alternate" type="text/plain" href="https://match.contexted.app/llms.txt" title="llms.txt" />
 
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
-      "@type": "WebApplication",
-      "name": "Contexted",
-      "url": "https://match.contexted.app/",
-      "description": "AI-mediated matching through shared context. Words over faces.",
-      "applicationCategory": "Lifestyle",
-      "operatingSystem": "Web"
+      "@graph": [
+        {
+          "@type": "Organization",
+          "@id": "https://contexted.app/#org",
+          "name": "Contexted",
+          "url": "https://contexted.app/",
+          "logo": "https://match.contexted.app/icon.svg",
+          "description": "Small product experiments by Jesse Chow.",
+          "founder": { "@type": "Person", "name": "Jesse Chow" },
+          "sameAs": ["https://github.com/jessepcc", "https://www.linkedin.com/in/jessepcc"]
+        },
+        {
+          "@type": "WebSite",
+          "@id": "https://match.contexted.app/#website",
+          "name": "Contexted",
+          "url": "https://match.contexted.app/",
+          "publisher": { "@id": "https://contexted.app/#org" },
+          "inLanguage": "en"
+        },
+        {
+          "@type": "WebApplication",
+          "@id": "https://match.contexted.app/#app",
+          "name": "Contexted",
+          "url": "https://match.contexted.app/",
+          "applicationCategory": "SocialNetworkingApplication",
+          "operatingSystem": "Web",
+          "browserRequirements": "Requires JavaScript.",
+          "isAccessibleForFree": true,
+          "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+          "publisher": { "@id": "https://contexted.app/#org" },
+          "description": "Contexted is an alpha peer-matching experiment. You paste an excerpt of the memory your AI assistant (ChatGPT or Claude) has built about you; Contexted reads it for recurring themes, values, and tone, then discards the raw text. Matches arrive in scheduled batch drops, each surfacing shared synergy points and a mutual prompt that opens an anonymous chat once both sides answer.",
+          "featureList": [
+            "Matching from AI assistant memory rather than photos or profiles",
+            "Manual privacy review of your excerpt before it is submitted",
+            "Batched match drops twice a week",
+            "Mutual confession prompt gates the chat",
+            "Anonymous chat until both sides choose otherwise",
+            "Invite-only, with a quiet referral loop"
+          ]
+        },
+        {
+          "@type": "WebPage",
+          "@id": "https://match.contexted.app/#webpage",
+          "url": "https://match.contexted.app/",
+          "name": "Contexted — Peer matching built on your AI's memory",
+          "isPartOf": { "@id": "https://match.contexted.app/#website" },
+          "about": { "@id": "https://match.contexted.app/#app" },
+          "primaryImageOfPage": "https://match.contexted.app/og-image.png",
+          "inLanguage": "en"
+        },
+        {
+          "@type": "HowTo",
+          "@id": "https://match.contexted.app/#howto",
+          "name": "How to join a Contexted drop",
+          "description": "Bring an excerpt of your AI assistant's memory about you, review it for anything identifying, and join the next batched alpha drop.",
+          "totalTime": "PT5M",
+          "step": [
+            {
+              "@type": "HowToStep",
+              "position": 1,
+              "name": "Open your AI memory",
+              "text": "Claude gets a direct import-memory link. ChatGPT gets the export path. Start with the memory layer, not a profile."
+            },
+            {
+              "@type": "HowToStep",
+              "position": 2,
+              "name": "Review the excerpt before you paste it",
+              "text": "Treat this like a manual privacy pass. Bring the part that feels true right now, not the entire archive."
+            },
+            {
+              "@type": "HowToStep",
+              "position": 3,
+              "name": "Join the next alpha drop",
+              "text": "Verify your email, set preferences, and join the next alpha drop."
+            }
+          ]
+        }
+      ]
     }
     </script>
+
+    <style>
+      /* Static pre-render of the landing hero. It is the first thing every visitor
+         sees and the only thing a crawler that does not run JavaScript ever sees.
+         React replaces it when the app chunk mounts, so the copy here must stay a
+         faithful mirror of LandingPage.tsx — serving crawlers content users don't
+         get is cloaking. */
+      #seo-hero {
+        --accent: #d4714e;
+        --accent-ink: #8e472e;
+        --ink: #1a1a1a;
+        --muted: #6b6b6b;
+        --rule: #e8e5df;
+        max-width: 72rem;
+        margin: 0 auto;
+        padding: 1.5rem 1rem 3.5rem;
+        font-family: 'Manrope', ui-sans-serif, system-ui, sans-serif;
+        color: var(--ink);
+        line-height: 1.7;
+      }
+      #seo-hero .masthead {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+      }
+      #seo-hero .brand {
+        font-family: 'Sora', ui-sans-serif, system-ui, sans-serif;
+        font-size: 1.25rem;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+      }
+      #seo-hero .tagline { font-size: 0.75rem; color: var(--muted); }
+      #seo-hero .alpha {
+        border: 1px solid var(--rule);
+        border-radius: 999px;
+        padding: 0.5rem 1rem;
+        font-size: 0.65rem;
+        font-weight: 700;
+        letter-spacing: 0.18em;
+        color: var(--muted);
+      }
+      #seo-hero h1 {
+        font-family: 'Sora', ui-sans-serif, system-ui, sans-serif;
+        font-size: clamp(3rem, 9vw, 5.4rem);
+        font-weight: 700;
+        line-height: 0.92;
+        letter-spacing: -0.045em;
+        margin: 2.5rem 0 0;
+        max-width: 56rem;
+      }
+      #seo-hero h1 .line-2 { display: block; margin-top: 0.5rem; color: var(--accent-ink); }
+      #seo-hero .facts {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem 1.5rem;
+        margin: 1.5rem 0 0;
+        font-size: 0.95rem;
+        color: var(--muted);
+      }
+      #seo-hero ol { list-style: none; margin: 2rem 0 0; padding: 0; border-top: 1px solid var(--rule); }
+      #seo-hero ol li {
+        display: grid;
+        grid-template-columns: 60px minmax(0, 1fr);
+        gap: 0.75rem;
+        padding: 1rem 0;
+        border-bottom: 1px solid var(--rule);
+      }
+      #seo-hero ol .num {
+        font-family: 'Sora', ui-sans-serif, system-ui, sans-serif;
+        font-size: 0.875rem;
+        font-weight: 700;
+        color: var(--accent-ink);
+      }
+      #seo-hero ol h2 {
+        font-family: 'Sora', ui-sans-serif, system-ui, sans-serif;
+        font-size: 1.125rem;
+        font-weight: 600;
+        margin: 0;
+      }
+      #seo-hero ol p { margin: 0.25rem 0 0; font-size: 0.9rem; color: var(--muted); }
+      #seo-hero .thesis { max-width: 42rem; margin: 2rem 0 0; font-size: 1.05rem; color: var(--muted); }
+      #seo-hero .links { margin-top: 2.5rem; font-size: 0.95rem; }
+      #seo-hero .links a { color: var(--accent-ink); margin-right: 1.25rem; }
+      @media (min-width: 640px) {
+        #seo-hero { padding: 2rem 1.5rem 4rem; }
+      }
+    </style>
   </head>
   <body>
     <div id="root">
-      <noscript>
-        <div style="max-width:600px;margin:4rem auto;padding:2rem;font-family:Inter,system-ui,sans-serif;background:#faf7f2;border-radius:12px;text-align:center">
-          <h1 style="font-family:Sora,sans-serif;font-size:2rem;color:#D4714E;margin-bottom:1rem">Contexted</h1>
-          <p style="font-size:1.1rem;color:#444;line-height:1.7;margin-bottom:1.5rem">Discover connection through shared context — not photos, not swipes. Contexted uses AI memory and written context to surface real compatibility.</p>
-          <p style="font-size:0.9rem;color:#777">Words over faces. Warmth over performance. Context over coincidence.</p>
-          <div style="margin-top:2rem">
-            <a href="/about" style="color:#D4714E;margin:0 0.5rem">About</a>
-            <a href="/privacy" style="color:#D4714E;margin:0 0.5rem">Privacy</a>
-            <a href="/blog" style="color:#D4714E;margin:0 0.5rem">Blog</a>
+      <!-- Replaced by React on mount; see the note in the #seo-hero stylesheet above. -->
+      <div id="seo-hero">
+        <div class="masthead">
+          <div>
+            <div class="brand">Contexted</div>
+            <p class="tagline">Matching with your AI's memory</p>
           </div>
+          <span class="alpha">ALPHA</span>
         </div>
-      </noscript>
+
+        <h1>
+          Bring AI's memory about you
+          <span class="line-2">Look for a similar soul</span>
+        </h1>
+
+        <div class="facts">
+          <span>Batch-matched, twice a week.</span>
+          <span>Memory changes, so future drops can too.</span>
+        </div>
+
+        <ol>
+          <li>
+            <span class="num">01</span>
+            <div>
+              <h2>Open your AI memory</h2>
+              <p>Claude gets a direct import-memory link. ChatGPT gets the export path. Start with the memory layer, not a profile.</p>
+            </div>
+          </li>
+          <li>
+            <span class="num">02</span>
+            <div>
+              <h2>Review the excerpt before you paste it</h2>
+              <p>Treat this like a manual privacy pass. Bring the part that feels true right now, not the entire archive.</p>
+            </div>
+          </li>
+          <li>
+            <span class="num">03</span>
+            <div>
+              <h2>Join the next alpha drop</h2>
+              <p>Verify your email, set preferences, and join the next alpha drop.</p>
+            </div>
+          </li>
+        </ol>
+
+        <p class="thesis">
+          Contexted is an alpha test of the social value of AI memory: not your polished profile, but the
+          living context your assistant accumulates over time. Because that memory keeps changing, the
+          experiment changes with it.
+        </p>
+        <p class="thesis">
+          To start, copy the provided prompt into a chat with ChatGPT or Claude, review the excerpt it
+          returns, and paste it back here. Contexted reads it for recurring themes and tone, then discards
+          the raw text. Words over faces. Warmth over performance. Context over coincidence.
+        </p>
+
+        <p class="links">
+          <a href="/about">About Contexted</a>
+          <a href="/blog">Blog</a>
+          <a href="/privacy">Privacy</a>
+          <a href="/terms">Terms</a>
+        </p>
+      </div>
     </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

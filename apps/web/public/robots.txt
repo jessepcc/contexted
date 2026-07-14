@@ -1,4 +1,177 @@
+# Contexted — peer matching built on your AI's memory
+# https://match.contexted.app
+#
+# Posture: maximum discovery for the public marketing surface (/, /about, /blog),
+# nothing for the private funnel. Search engines, AI answer engines, and training
+# crawlers are all allowed to read the public pages.
+#
+# Every agent gets its own group with its own Disallow lines rather than inheriting
+# from "*". That is deliberate: a crawler obeys only the most specific group that
+# names it and does NOT merge in the wildcard group's rules, so omitting the
+# Disallow lines here would expose the app funnel to every bot named below.
+#
+# Cloudflare serves a managed robots.txt (which disallows the training crawlers) to
+# sites that ship none of their own. This file replaces it — if it is removed, the
+# training bots get blocked again by default.
+
 User-agent: *
+# Content Signals Policy (contentsignals.org). Non-binding preference, not enforcement.
+# search   = may index for search results
+# ai-input = may retrieve live to ground an AI answer (this is what earns citations)
+# ai-train = may be used to train models
+Content-Signal: search=yes, ai-input=yes, ai-train=yes
 Allow: /
+Disallow: /app
+Disallow: /auth/
+Disallow: /verify
+Disallow: /r/
+Disallow: /v1/
+
+# --- Search engines ---
+User-agent: Googlebot
+Allow: /
+Disallow: /app
+Disallow: /auth/
+Disallow: /verify
+
+User-agent: Bingbot
+Allow: /
+Disallow: /app
+Disallow: /auth/
+Disallow: /verify
+
+User-agent: DuckDuckBot
+Allow: /
+Disallow: /app
+Disallow: /auth/
+Disallow: /verify
+
+User-agent: Applebot
+Allow: /
+Disallow: /app
+Disallow: /auth/
+Disallow: /verify
+
+# --- AI answer engines: live retrieval and grounding (these are what produce citations) ---
+User-agent: OAI-SearchBot
+Allow: /
+Disallow: /app
+Disallow: /auth/
+Disallow: /verify
+
+User-agent: ChatGPT-User
+Allow: /
+Disallow: /app
+Disallow: /auth/
+Disallow: /verify
+
+User-agent: Claude-SearchBot
+Allow: /
+Disallow: /app
+Disallow: /auth/
+Disallow: /verify
+
+User-agent: Claude-User
+Allow: /
+Disallow: /app
+Disallow: /auth/
+Disallow: /verify
+
+User-agent: PerplexityBot
+Allow: /
+Disallow: /app
+Disallow: /auth/
+Disallow: /verify
+
+User-agent: Perplexity-User
+Allow: /
+Disallow: /app
+Disallow: /auth/
+Disallow: /verify
+
+User-agent: DuckAssistBot
+Allow: /
+Disallow: /app
+Disallow: /auth/
+Disallow: /verify
+
+User-agent: MistralAI-Index
+Allow: /
+Disallow: /app
+Disallow: /auth/
+Disallow: /verify
+
+User-agent: MistralAI-User
+Allow: /
+Disallow: /app
+Disallow: /auth/
+Disallow: /verify
+
+User-agent: Meta-ExternalFetcher
+Allow: /
+Disallow: /app
+Disallow: /auth/
+Disallow: /verify
+
+User-agent: YouBot
+Allow: /
+Disallow: /app
+Disallow: /auth/
+Disallow: /verify
+
+# --- AI training / corpus crawlers ---
+User-agent: GPTBot
+Allow: /
+Disallow: /app
+Disallow: /auth/
+Disallow: /verify
+
+User-agent: ClaudeBot
+Allow: /
+Disallow: /app
+Disallow: /auth/
+Disallow: /verify
+
+User-agent: Google-Extended
+Allow: /
+Disallow: /app
+Disallow: /auth/
+Disallow: /verify
+
+User-agent: Applebot-Extended
+Allow: /
+Disallow: /app
+Disallow: /auth/
+Disallow: /verify
+
+User-agent: Meta-ExternalAgent
+Allow: /
+Disallow: /app
+Disallow: /auth/
+Disallow: /verify
+
+User-agent: Amazonbot
+Allow: /
+Disallow: /app
+Disallow: /auth/
+Disallow: /verify
+
+User-agent: CCBot
+Allow: /
+Disallow: /app
+Disallow: /auth/
+Disallow: /verify
+
+User-agent: cohere-training-data-crawler
+Allow: /
+Disallow: /app
+Disallow: /auth/
+Disallow: /verify
+
+User-agent: Diffbot
+Allow: /
+Disallow: /app
+Disallow: /auth/
+Disallow: /verify
 
 Sitemap: https://match.contexted.app/sitemap.xml

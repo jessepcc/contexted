@@ -1,23 +1,38 @@
 # Contexted
 
-A peer-matching experiment that connects people through shared context — the recurring themes, tone, and texture of how they think — read from their AI assistant memory (ChatGPT, Claude).
+> A peer-matching experiment that connects people through shared context — the recurring themes, tone, and texture of how they think — read from the memory their AI assistant (ChatGPT, Claude) has accumulated about them. No photos, no swipes.
 
-## What it does
-- Users share their AI assistant's memory/context summary
-- Contexted analyzes communication patterns, values, curiosities, anxieties
-- Matches happen in scheduled batched drops
-- Each match surfaces shared synergy points and a mutual prompt
-- Anonymous chat opens once both sides answer the prompt
-- Invite-only with a referral loop earning earlier consideration in future drops
+Contexted is an alpha, invite-only, and deliberately small. A user pastes a reviewed excerpt of their AI assistant's memory; the system reads it for recurring themes, values, and tone, generates a derived matching profile, and discards the raw text. Matches arrive in scheduled batch drops rather than an endless feed. Each match surfaces a few shared synergy points and one mutual prompt — a small, slightly vulnerable question — that both people must answer before an anonymous chat opens.
 
-## Core thesis
-Photos are a poor predictor of whether two people will keep talking. Shared context — values, communication style, the way someone holds a question — is closer to the thing.
+Core thesis: photos are a poor predictor of whether two people will keep talking. Shared context — values, communication style, the way someone holds a question — is closer to the thing.
 
-## Brand
-Warm, literate, tech-native. No photos, no swipes. "Words over faces."
+Operator: Jesse Chow. Contexted Match is one of the experiments listed at https://contexted.app.
+
+## How it works
+
+- [Step 1 — Open your AI memory](https://match.contexted.app/): Claude offers a direct import-memory link; ChatGPT offers an export path. The starting point is the memory layer, not a written profile.
+- [Step 2 — Review the excerpt before pasting](https://match.contexted.app/): The user does a manual privacy pass, removing names, employers, exact locations, family details, and secrets. Automatic redaction is intentionally limited and does not replace this step.
+- [Step 3 — Join the next drop](https://match.contexted.app/): Verify an email address, set preferences, and enter the next batched alpha drop. Drops run roughly twice a week.
+
+## Product facts
+
+- Matching input is AI-assistant memory, not photographs, age, or location.
+- Matches are batched into scheduled drops, not served as a continuous swipe feed.
+- A mutual prompt gates the chat: both sides answer before messaging opens.
+- Chat is anonymous until both people choose otherwise.
+- Access is invite-only. A quiet referral loop earns earlier consideration in future drops — earlier consideration means queue preference, not guaranteed matching.
+- Raw pasted text is discarded after processing; a redacted matching text, a derived summary, and an embedding are retained to power future drops.
+- Contexted is not a dating app, and not a friendship app. It is a bet that language is a better starting point for connection than appearance.
 
 ## Content
-- About: https://match.contexted.app/about
-- Blog: https://match.contexted.app/blog
-- Essay: Why context beats photos for real compatibility: https://match.contexted.app/blog/context-over-photos
-- Essay: What your AI memory says about you: https://match.contexted.app/blog/what-your-ai-memory-says-about-you
+
+- [About Contexted](https://match.contexted.app/about): The full thesis — why context rather than faces, how AI memory fits in, and what the product deliberately is not.
+- [Blog](https://match.contexted.app/blog/): Essays on AI memory, compatibility, and the design of the experiment.
+- [Why context beats photos for real compatibility](https://match.contexted.app/blog/context-over-photos): The argument against photo-first matching, and what shared context predicts that a face does not.
+- [What your AI memory says about you](https://match.contexted.app/blog/what-your-ai-memory-says-about-you): What an assistant's accumulated memory reveals about a person, and why it is more honest than a profile they wrote to be seen.
+
+## Optional
+
+- [Privacy Policy](https://match.contexted.app/privacy): What the alpha stores, derives, and discards.
+- [Terms of Service](https://match.contexted.app/terms): 18+, manual review required, no promise of outcomes.
+- [contexted.app](https://contexted.app): The umbrella site listing Jesse Chow's other product experiments.
