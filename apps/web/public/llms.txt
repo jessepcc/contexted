@@ -17,7 +17,7 @@ Photos are a poor predictor of whether two people will keep talking. Shared cont
 Warm, literate, tech-native. No photos, no swipes. "Words over faces."
 
 ## Content
-- About: https://contexted.app/about
-- Blog: https://contexted.app/blog
-- Essay: Why context beats photos for real compatibility: https://contexted.app/blog/context-over-photos
-- Essay: What your AI memory says about you: https://contexted.app/blog/what-your-ai-memory-says-about-you
+- About: https://match.contexted.app/about
+- Blog: https://match.contexted.app/blog
+- Essay: Why context beats photos for real compatibility: https://match.contexted.app/blog/context-over-photos
+- Essay: What your AI memory says about you: https://match.contexted.app/blog/what-your-ai-memory-says-about-you

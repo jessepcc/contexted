@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://contexted.app/sitemap.xml
+Sitemap: https://match.contexted.app/sitemap.xml
